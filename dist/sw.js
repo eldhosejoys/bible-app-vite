@@ -97,7 +97,7 @@ self.addEventListener("fetch", (event) => {
       }
 
       // For other URLs, do not cache and fetch from the network directly
-      return fetch(event.request);
+      return fetchAndCache(event.request);
     })
   );
 });
