@@ -35,6 +35,7 @@ function fetchAndCache(url) {
       return response;
     })
     .catch(() => {
+      return caches.match('/'); // show home page
       // Handle fetch errors, e.g., serve a fallback response
     });
 }
@@ -97,7 +98,13 @@ self.addEventListener("fetch", (event) => {
       }
 
       // For other URLs, do not cache and fetch from the network directly
-      return fetchAndCache(event.request);
+     
+      if (navigator.onLine) {
+        return fetch(event.request);
+      }else{
+        return caches.match('/'); // show home page
+      }
+
     })
   );
 });
