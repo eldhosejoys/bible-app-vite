@@ -18,7 +18,7 @@ export const transliterate = async (word) => {
     return transliteratedValue;
   } catch (error) {
     if (axios.isCancel(error)) {
-      console.log(error.message);
+      // console.log(error.message);
     } else {
       console.log(error);
     }

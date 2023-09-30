@@ -23,6 +23,7 @@ let urlsToCache = [
 
 // Function to fetch and cache a URL
 function fetchAndCache(url) {
+
   return fetch(url)
     .then((response) => {
       if (!response.ok) {
@@ -62,7 +63,7 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   const requestPath = new URL(event.request.url).pathname;
-  const regex = /\/(css|js)\/.*\.(css|js)$/;
+  const regex = /\.(css|js)$/ ;
 
   if (regex.test(requestPath)) {
     // Handle URLs matching the pattern differently if needed
@@ -98,13 +99,12 @@ self.addEventListener("fetch", (event) => {
       }
 
       // For other URLs, do not cache and fetch from the network directly
-     
+      
       if (navigator.onLine) {
         return fetch(event.request);
       }else{
-        return caches.match('/'); // show home page
+        return caches.match('/');
       }
-
     })
   );
 });

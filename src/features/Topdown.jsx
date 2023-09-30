@@ -26,7 +26,7 @@ function Topdown() {
           const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
           const scrollHeight = document.documentElement.scrollHeight;
           const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
-          console.log(scrollHeight)
+          // console.log(scrollHeight)
           if (scrollTop > 3 * viewportHeight && scrollHeight > 5000) {
             setIsFloatingButtonVisible1(true);
           } else {

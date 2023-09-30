@@ -20,7 +20,6 @@ function About() {
     const headingKeys = Object.keys(siteConfig().headings);
     console.log("headingKeys:" + headingKeys);
     for (const number of headingKeys) {
-      console.log("number:" + number);
       b.push(
         <div className="numberbox" key={number}>
           <Link className="link-dark small text-decoration-none" to={`/${number}/1`}>

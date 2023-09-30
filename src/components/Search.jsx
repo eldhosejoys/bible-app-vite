@@ -146,7 +146,7 @@ return td;
                   <div className={`col text-left words-text fs-${currentFontSize}`} ><div dangerouslySetInnerHTML={{ __html: splited }} /><Link className="link-dark small text-decoration-none" to={`/${response["b"]}/${response["c"]}/${response["v"]}`}><div className="fw-bold text-primary">({h_lang} {response["c"]}:{response["v"]})</div></Link> </div>
                   <div className={`words-text-player ${currentCompact ? 'd-none' : ''} col-auto text-right ml-auto my-auto`}>                 
                     {(() => {
-                      console.log(response["t"]+" ("+h_lang+" "+response["c"]+":"+response["v"]+")")
+                      // console.log(response["t"]+" ("+h_lang+" "+response["c"]+":"+response["v"]+")")
                       var td = [];
                       if (('SpeechRecognition' in window || 'webkitSpeechRecognition' in window ) && navigator.onLine) {
                         td.push(

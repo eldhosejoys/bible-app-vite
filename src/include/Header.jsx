@@ -22,12 +22,12 @@ function Header(props) {
 
     function handleInput(e) {
         const value = e;
-        console.log(value);
+        // console.log(value);
         setInput(value);
         setSuggestions([]);
         if(localStorage.getItem('bible-language') == 'English'){return}
         transliterate(value).then((b) => {
-          console.log(b);
+          // console.log(b);
           setSuggestions(b);
           setActiveSuggestion(0); // reset active suggestion
           setShowSuggestions(!!b.length); // show suggestion list if suggestions are available

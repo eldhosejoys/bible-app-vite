@@ -157,7 +157,7 @@ function Content() {
     // console.log("compact: "+currentCompact+" fontsize: "+currentFontSize);
     r.forEach((response, index) => {
       if(getLanguage() != 'English' && heading && heading.find(heading => heading.c == params.chapter && heading.v == response["v"])){
-        console.log(heading.find(heading => heading.c == params.chapter && heading.v == response["v"]).h);
+        // console.log(heading.find(heading => heading.c == params.chapter && heading.v == response["v"]).h);
         b.push(
           <div className="col mb-2 pushdata" id={`h-${response["v"]}`}>
             <div className={`words-text-card ${currentCompact ? '' : 'shadow-md card'}`}>
