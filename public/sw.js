@@ -2,6 +2,7 @@ const CACHE_NAME = "cache";
 
 let urlsToCache = [
     "/",
+    "/manifest.json",
     "/favicon.ico",
     "/assets/json/title.json",
     "/assets/json/bible.json",
