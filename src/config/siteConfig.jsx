@@ -25,7 +25,7 @@ export const siteConfig = () => {
       55: "/assets/json/headings/55.json",
       56: "/assets/json/headings/56.json",
       57: "/assets/json/headings/57.json",
-
+      58: "/assets/json/headings/58.json",
       59: "/assets/json/headings/59.json",
       60: "/assets/json/headings/60.json",
       61: "/assets/json/headings/61.json",
