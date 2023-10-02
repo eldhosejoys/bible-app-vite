@@ -63,6 +63,17 @@ function Header(props) {
           }
       }
 
+      function numExtraKeys() {
+        const number = parseInt(location.pathname.split("/")[2]);
+        switch (number) {
+          case 1: return getTranslation().numExtra[0];
+          case 2: return getTranslation().numExtra[1];
+          case 3: return getTranslation().numExtra[2];
+          default: return getTranslation().numExtra[3];
+        }
+       
+      }
+
             
     useEffect(()=>{
        if(searchParams.get("q") == null){
@@ -84,7 +95,7 @@ function Header(props) {
         const resp = await getCacheData('cache', siteConfig().titleurl);
         if (resp) {
           if(getLanguage() == "English"){ var h_lang = resp[location.pathname.split("/")[1]-1].be}else{ var h_lang =resp[location.pathname.split("/")[1]-1].bm;}
-          const placer = h_lang+" : "+location.pathname.split("/")[2]+"-ാം "+getTranslation().chapter;
+          const placer = h_lang+" : "+location.pathname.split("/")[2]+numExtraKeys()+getTranslation().chapter;
           setPlaceholder(placer);
         }  };
         loadindex();
