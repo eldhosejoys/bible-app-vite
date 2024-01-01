@@ -2,11 +2,12 @@ export const siteConfig = () => {
   const config = {
     bibleurl: "/assets/json/bible.json",
     eng_bibleurl: "/assets/json/eng-bible.json",
-    headingurl: "/assets/json/headings/bibleheadings.json",
+    headingurl: "/assets/json/headings/bibleheadings.json",  // This is actually used in the code
     titleurl: "/assets/json/title.json",
     headings: { 
       1: "/assets/json/headings/1.json",
       2: "/assets/json/headings/2.json",
+      3: "/assets/json/headings/3.json",
       40: "/assets/json/headings/40.json",
       41: "/assets/json/headings/41.json",
       42: "/assets/json/headings/42.json",
