@@ -8,6 +8,7 @@ export const siteConfig = () => {
       1: "/assets/json/headings/1.json",
       2: "/assets/json/headings/2.json",
       3: "/assets/json/headings/3.json",
+      4: "/assets/json/headings/3.json",
       40: "/assets/json/headings/40.json",
       41: "/assets/json/headings/41.json",
       42: "/assets/json/headings/42.json",
