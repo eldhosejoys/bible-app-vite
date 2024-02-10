@@ -2,6 +2,9 @@ export const siteConfig = () => {
   const config = {
     bibleurl: "/assets/json/bible.json",
     eng_bibleurl: "/assets/json/eng-bible.json",
+    hin_bibleurl: "/assets/json/hin-bible.json",
+    tam_bibleurl: "/assets/json/tam-bible.json",
+    telu_bibleurl: "/assets/json/telu-bible.json",
     headingurl: "/assets/json/headings/bibleheadings.json",  // This is actually used in the code
     titleurl: "/assets/json/title.json",
     headings: { 
@@ -45,7 +48,17 @@ export const siteConfig = () => {
 export const getBible =  () => {
   const bibleLanguage = localStorage.getItem('bible-language');
   if(!bibleLanguage || bibleLanguage == 'Malayalam'){
+    localStorage.setItem('bible-language', 'Malayalam');
     return siteConfig().bibleurl;
+  }else if(bibleLanguage == 'Hindi'){
+    localStorage.setItem('bible-language', 'Hindi');
+    return siteConfig().hin_bibleurl;
+  }else if(bibleLanguage == 'Tamil'){
+    localStorage.setItem('bible-language', 'Tamil');
+    return siteConfig().tam_bibleurl;
+  }else if(bibleLanguage == 'Telugu'){
+    localStorage.setItem('bible-language', 'Telugu');
+    return siteConfig().telu_bibleurl;
   }else{
     return siteConfig().eng_bibleurl;
   }

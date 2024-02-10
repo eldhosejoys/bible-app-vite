@@ -23,7 +23,7 @@ function Index() {
     let b = []; let c = [];
 
     document.title = getTranslation().siteTitle; 
-    if(getLanguage() == "English"){ var h_lang = "be"; var h_auth = "we"; var h_d = "de";}else{ var h_lang = "bm"; var h_auth = "w";var h_d = "d";}
+    if(!getLanguage() || getLanguage() == "Malayalam"){ var h_lang = "bm"; var h_auth = "w";var h_d = "d";}else{ var h_lang = "be"; var h_auth = "we"; var h_d = "de";}
 
     response.forEach((response) => {
       b.push(

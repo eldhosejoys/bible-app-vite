@@ -1,7 +1,7 @@
 export const getTranslation =  () => {
     const bibleLanguage = localStorage.getItem('bible-language');
     if(!bibleLanguage || bibleLanguage == 'Malayalam'){
-
+        localStorage.setItem('bible-language', 'Malayalam');
         return {
             siteTitle: "ജീവന്റെ വചനം മലയാളം വേദപുസ്തകം | Yehoshua.in",
             siteFooter: "ജീവന്റെ വചനം മലയാളം",
@@ -21,9 +21,9 @@ export const getTranslation =  () => {
     }else{
 
         return {
-            siteTitle: "The Word of Life English Bible | Yehoshua.in",
-            siteFooter: "The Word of Life English",
-            searchPlaceHolder:"Search Verses in English...",
+            siteTitle: "The Word of Life "+bibleLanguage+" Bible | Yehoshua.in",
+            siteFooter: "The Word of Life "+bibleLanguage,
+            searchPlaceHolder:"Search Verses in "+bibleLanguage+"...",
             chapter : "Chapter",
             preBook : "Previous Book",
             nextBook : "Next Book",

@@ -94,7 +94,7 @@ function Header(props) {
       const loadindex = async () => {
         const resp = await getCacheData('cache', siteConfig().titleurl);
         if (resp) {
-          if(getLanguage() == "English"){ var h_lang = resp[location.pathname.split("/")[1]-1].be}else{ var h_lang =resp[location.pathname.split("/")[1]-1].bm;}
+          if(!getLanguage() || getLanguage() == "Malayalam"){ var h_lang =resp[location.pathname.split("/")[1]-1].bm;}else{ var h_lang = resp[location.pathname.split("/")[1]-1].be}
           const placer = h_lang+" : "+location.pathname.split("/")[2]+numExtraKeys()+getTranslation().chapter;
           setPlaceholder(placer);
         }  };

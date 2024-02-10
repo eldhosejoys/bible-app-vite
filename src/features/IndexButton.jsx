@@ -21,7 +21,7 @@ function IndexButton() {
       );
     }
     let md =[];
-    if(getLanguage() == "English"){ var h_lang = "be"}else{ var h_lang ="bm";}
+    if(!getLanguage() || getLanguage() == "Malayalam"){ var h_lang ="bm";}else{ var h_lang = "be"}
     md.push(<div className="text-center text-primary fw-bolder"><div className="bg-dark fixed-top py-2" onClick={() => {biblechapters(response);setMenuVisible(true);}}>← {rp[h_lang]}</div><div className="row row-cols-auto mt-5 mb-1 ps-4 pe-4 justify-content-center" style={{minWidth:'250px'}}>{td}</div></div>)
     setChapNumbers(md);
   }
@@ -29,7 +29,7 @@ function IndexButton() {
   function biblechapters(response) {
     let b = []; let b2 = []; 
     let c = 1;
-    if(getLanguage() == "English"){ var h_lang = "be"}else{ var h_lang ="bm";}
+    if(!getLanguage() || getLanguage() == "Malayalam"){ var h_lang ="bm";}else{ var h_lang = "be"}
     response.forEach((rp) => {
      if(c <=39){
       b.push(

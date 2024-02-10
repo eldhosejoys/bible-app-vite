@@ -9,7 +9,19 @@ export const transliterate = async (word) => {
   }
   // Create a new CancelToken
   cancelToken = axios.CancelToken.source();
-  const url = `https://inputtools.google.com/request?text=${word}&itc=ml-t-i0-und&num=5&cp=0&cs=1&ie=utf-8&oe=utf-8`;
+  const bibleLanguage = localStorage.getItem('bible-language');
+  let langCode;
+  if(bibleLanguage == 'Hindi'){
+   langCode = 'hi';
+  }else if(bibleLanguage == 'Tamil'){
+    langCode = 'ta';
+  }else if(bibleLanguage == 'Telugu'){
+    langCode = 'te';
+  }else{
+   langCode = 'ml';
+  }
+  const url = `https://inputtools.google.com/request?text=${word}&itc=${langCode}-t-i0-und&num=5&cp=0&cs=1&ie=utf-8&oe=utf-8`;
+
   try {
     const response = await axios.get(url, {
       cancelToken: cancelToken.token,

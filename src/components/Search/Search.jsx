@@ -138,7 +138,9 @@ function Search() {
         var splited = response["t"].replace(RegExp(q, "g"), "<span class='text-dark' style='background-color: #fff952;'>" + q + "</span>");
         const currentFontSize = localStorage.getItem('fontSize'); //font size control
         const currentCompact = localStorage.getItem('compact');
-        if (getLanguage() == "English") { var h_lang = m[0].be; } else { var h_lang = m[0].bm; }
+
+        if(!getLanguage() || getLanguage() == "Malayalam"){ var h_lang =m[0].bm;}else{ var h_lang = m[0].be}
+
         (function (response, index, splited, h_lang) {
           b.push(
             <div className={`col mb-2 pushdata`} id={`v-${response["v"]}`}>

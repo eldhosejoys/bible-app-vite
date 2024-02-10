@@ -54,7 +54,7 @@ function Content() {
       return (obj.n == params.book);
     });
 
-    if(getLanguage() == "English"){ var h_lang = r[0].be}else{ var h_lang =r[0].bm;}
+    if(!getLanguage() || getLanguage() == "Malayalam"){ var h_lang =r[0].bm;}else{ var h_lang = r[0].be}
 
     if(params.verse){
       document.title = h_lang+" ("+params.chapter+":"+params.verse+") | "+getTranslation().siteTitle; 
@@ -156,7 +156,7 @@ function Content() {
     if(theme == 'dark'){colorText = 'text-warning';}else{colorText = 'text-danger';}
     // console.log("compact: "+currentCompact+" fontsize: "+currentFontSize);
     r.forEach((response, index) => {
-      if(getLanguage() != 'English' && heading && heading.find(heading => heading.c == params.chapter && heading.v == response["v"])){
+      if((!getLanguage() || getLanguage() == 'Malayalam') && heading && heading.find(heading => heading.c == params.chapter && heading.v == response["v"])){
         // console.log(heading.find(heading => heading.c == params.chapter && heading.v == response["v"]).h);
         b.push(
           <div className="col mb-2 pushdata" id={`h-${response["v"]}`}>
