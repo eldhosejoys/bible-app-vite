@@ -8,7 +8,6 @@ import Footer from './include/Footer';
 // import Search from './components/Search/Search';
 import Settings from './features/Settings';
 import About from './components/About';
-import ChangesMadeMalayalam from './components/ChangesMadeMalayalam';
 import {Search} from './components/Search';
 
 function App() {
@@ -22,7 +21,6 @@ function App() {
                         <Route path='/search' element={<Search />} />
                         <Route path='/settings' element={<Settings />} />
                         <Route path='/about' element={<About />} />
-                        {/* <Route path='/changes' element={<ChangesMadeMalayalam />} /> */}
                         <Route path='/:book' element={<Content />} />
                         <Route path='/:book/:chapter' element={<Content />} />
                         <Route path='/:book/:chapter/:verse' element={<Content />} />

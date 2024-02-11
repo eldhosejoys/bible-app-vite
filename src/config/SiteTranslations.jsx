@@ -1,7 +1,9 @@
+import { getLanguage, setLanguage } from '../config/Utils';
+
 export const getTranslation =  () => {
-    const bibleLanguage = localStorage.getItem('bible-language');
+    const bibleLanguage = getLanguage();
     if(!bibleLanguage || bibleLanguage == 'Malayalam'){
-        localStorage.setItem('bible-language', 'Malayalam');
+        setLanguage('Malayalam');
         return {
             siteTitle: "ജീവന്റെ വചനം മലയാളം വേദപുസ്തകം | Yehoshua.in",
             siteFooter: "ജീവന്റെ വചനം മലയാളം",

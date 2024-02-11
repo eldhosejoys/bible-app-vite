@@ -1,3 +1,5 @@
+import { getLanguage , setLanguage } from '../config/Utils';
+
 export const siteConfig = () => {
   const config = {
     bibleurl: "/assets/json/bible.json",
@@ -46,18 +48,18 @@ export const siteConfig = () => {
 };
 
 export const getBible =  () => {
-  const bibleLanguage = localStorage.getItem('bible-language');
+  const bibleLanguage = getLanguage();
   if(!bibleLanguage || bibleLanguage == 'Malayalam'){
-    localStorage.setItem('bible-language', 'Malayalam');
+    setLanguage('Malayalam');
     return siteConfig().bibleurl;
   }else if(bibleLanguage == 'Hindi'){
-    localStorage.setItem('bible-language', 'Hindi');
+    setLanguage('Hindi');
     return siteConfig().hin_bibleurl;
   }else if(bibleLanguage == 'Tamil'){
-    localStorage.setItem('bible-language', 'Tamil');
+    setLanguage('Tamil');
     return siteConfig().tam_bibleurl;
   }else if(bibleLanguage == 'Telugu'){
-    localStorage.setItem('bible-language', 'Telugu');
+    setLanguage('Telugu');
     return siteConfig().telu_bibleurl;
   }else{
     return siteConfig().eng_bibleurl;

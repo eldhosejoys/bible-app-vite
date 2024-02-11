@@ -124,7 +124,7 @@ function Content() {
             for (let i = 1; i <= r[0].c; i++) {
               if (i == params.chapter) {
                 td.push(
-                  <div key={i} className="numberbox" ><Link className="link-dark small text-decoration-none" to={`/${params.book}/${i}`} ><div className="col numberbox" style={{ "background-color": "#8D9EFF" }}>{i}</div></Link> </div>
+                  <div key={i} className="numberbox" ><Link className="link-dark small text-decoration-none" to={`/${params.book}/${i}`} ><div className="col numberbox" style={{ "backgroundColor": "#8D9EFF" }}>{i}</div></Link> </div>
                 );
               }
               else {
@@ -181,11 +181,11 @@ function Content() {
                     var td = [];
                     if (('SpeechRecognition' in window || 'webkitSpeechRecognition' in window ) && navigator.onLine) {
                       td.push(
-                        <div style={{ "position": "relative", "margin-right": "-35px" }} className="arrowbutton card rounded-circle"><a ref={el => itemsRef2.current[index] = el} onClick={e => speakcontent(chap, index,itemsRef,itemsRef2,itemsRef3)} className="btn btn-small rounded-circle fw-bold arrowbutton"><img ref={el => itemsRef.current[index] = el} src="/assets/images/play.svg" width="16px" height="16px" /></a></div>
+                        <div style={{ "position": "relative", "marginRight": "-35px" }} className="arrowbutton card rounded-circle"><a ref={el => itemsRef2.current[index] = el} onClick={e => speakcontent(chap, index,itemsRef,itemsRef2,itemsRef3)} className="btn btn-small rounded-circle fw-bold arrowbutton"><img ref={el => itemsRef.current[index] = el} src="/assets/images/play.svg" width="16px" height="16px" /></a></div>
                       );
                     }
                     td.push(
-                      <div style={{ "position": "relative", "margin-right": "-35px" }} className="arrowbutton card rounded-circle"><a ref={el => itemsRef2.current["c-" + index] = el} onClick={e => copyToClipBoard(response["t"] + " (" + chaptername + " " + params.chapter + ":"+(index+1)+")", index, itemsRef,itemsRef2)} className="btn btn-small rounded-circle fw-bold arrowbutton"><img onLoad={(e) => { if (parseInt(params.verse) == index + 1) { loadedCard(index); } }} ref={el => itemsRef.current["c-" + index] = el} src="/assets/images/clipboard.svg" width="16px" height="16px" /></a></div>
+                      <div style={{ "position": "relative", "marginRight": "-35px" }} className="arrowbutton card rounded-circle"><a ref={el => itemsRef2.current["c-" + index] = el} onClick={e => copyToClipBoard(response["t"] + " (" + chaptername + " " + params.chapter + ":"+(index+1)+")", index, itemsRef,itemsRef2)} className="btn btn-small rounded-circle fw-bold arrowbutton"><img onLoad={(e) => { if (parseInt(params.verse) == index + 1) { loadedCard(index); } }} ref={el => itemsRef.current["c-" + index] = el} src="/assets/images/clipboard.svg" width="16px" height="16px" /></a></div>
                     );
                     return td;
                   })()}

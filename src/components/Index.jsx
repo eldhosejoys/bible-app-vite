@@ -46,7 +46,7 @@ function Index() {
                   return td;
                 })()}
               </div>
-              <div style={{ "position": "relative", "margin-bottom": "-35px" }} className="mt-3 arrowbutton"><span onClick={() => collapse(`${response["n"]}`)} className="btn border bg-body rounded-circle fw-bold arrowbutton" style={{color:"#0d6efd"}}>⇣⇡</span></div>
+              <div style={{ "position": "relative", "marginBottom": "-35px" }} className="mt-3 arrowbutton"><span onClick={() => collapse(`${response["n"]}`)} className="btn border bg-body rounded-circle fw-bold arrowbutton" style={{color:"#0d6efd"}}>⇣⇡</span></div>
 
             </div>
           </div>

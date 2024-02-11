@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import Button from 'react-bootstrap/Button';
 import Modal from 'react-bootstrap/Modal';
 import { getTranslation } from '../config/SiteTranslations';
-import { handleFontSize, handleCompact, getCacheData } from '../config/Utils';
+import { handleFontSize, handleCompact, getCacheData, getLanguage, setLanguage } from '../config/Utils';
 
 
 function Settings() {
@@ -16,7 +16,6 @@ function Settings() {
 
   const [theme, setTheme] = useState('light');
   const [bibleLanguage, setBibleLanguage] = useState('Malayalam');
-  const [isLanguageChecked, setIsLanguageChecked] = useState(false);
   const [fontSize, setFontSize] = useState(6);
   const [isThemeChecked, setIsThemeChecked] = useState(false);
   const [isCompactChecked, setIsCompactChecked] = useState(false);
@@ -34,13 +33,11 @@ function Settings() {
     document.documentElement.setAttribute('data-bs-theme', currentTheme || 'dark');
 
 
-    const currentBibleLanguage = localStorage.getItem('bible-language');
+    const currentBibleLanguage = getLanguage();
     setBibleLanguage(currentBibleLanguage || 'Malayalam');
-    setIsLanguageChecked(currentBibleLanguage === 'English');
     if (!currentBibleLanguage) {
-      localStorage.setItem('bible-language', 'Malayalam');
+      setLanguage('Malayalam');
       setBibleLanguage('Malayalam');
-      setIsLanguageChecked(false);
     }
 
     const fontSizeValue = localStorage.getItem('fontSize');
@@ -96,13 +93,10 @@ function Settings() {
   const toggleLanguage = (e) => {
     const confirmed = window.confirm('Are you sure you want to change Language?');
     if (confirmed) {
-      const newLanguage = e.target.value; //bibleLanguage === 'Malayalam' ? 'English' : 'Malayalam';
+      const newLanguage = e.target.value;
       setBibleLanguage(newLanguage);
-      localStorage.setItem('bible-language', newLanguage);
+      setLanguage(newLanguage);
 
-      // const lanSwitch = document.getElementById('lanSwitch');
-      // lanSwitch.checked = newLanguage === 'English';
-      // setIsLanguageChecked(newLanguage === 'Malayalam' ? false : true);
       window.location.reload();
     }
   };
@@ -162,11 +156,6 @@ function Settings() {
           <label className="form-check-label" for="compactSwitch">Compact</label>
           <input className="form-check-input" type="checkbox" checked={isCompactChecked} onChange={toggleCompact} id="compactSwitch" />
         </div>
-
-        {/* <div className="form-check form-switch">
-          <label className="form-check-label" for="lanSwitch">{bibleLanguage} Language</label>
-          <input className="form-check-input" type="checkbox" checked={isLanguageChecked} onChange={toggleLanguage} id="lanSwitch" />
-        </div> */}
 
         <div>
           <label className="form-check-label" for="lanSwitch">Choose Language</label>

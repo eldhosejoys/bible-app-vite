@@ -82,8 +82,8 @@ function Search() {
             td.push(
               <div className="numberbox">
                 <a className="link-dark small text-decoration-none" >
-                  <div className="col numberbox" style={{ "background-color": "#8D9EFF" }}>
-                    <select style={{ "background-color": "transparent", border: "none", outline: "0px" }} value={pval} onChange={(e) => { navigate(`/search?q=${q}&p=${e.target.value}`) }}>
+                  <div className="col numberbox" style={{ "backgroundColor": "#8D9EFF" }}>
+                    <select style={{ "backgroundColor": "transparent", border: "none", outline: "0px" }} value={pval} onChange={(e) => { navigate(`/search?q=${q}&p=${e.target.value}`) }}>
 
                       {Array.from({ length: len }, (_, index) => (
                         <option className="bg-dark-subtle" key={index + 1} value={index + 1}><Link to={`/search?q=${q}&p=${index + 1}`}>{index + 1}</Link></option>
@@ -135,7 +135,7 @@ function Search() {
           return (obj.n == response["b"]);
         });
 
-        var splited = response["t"].replace(RegExp(q, "g"), "<span class='text-dark' style='background-color: #fff952;'>" + q + "</span>");
+        var splited = response["t"].replace(RegExp(q, "g"), "<span class='text-dark' style='backgroundColor: #fff952;'>" + q + "</span>");
         const currentFontSize = localStorage.getItem('fontSize'); //font size control
         const currentCompact = localStorage.getItem('compact');
 
@@ -156,11 +156,11 @@ function Search() {
                         var td = [];
                         if (('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) && navigator.onLine) {
                           td.push(
-                            <div style={{ "position": "relative", "margin-right": "-35px" }} className="arrowbutton card rounded-circle"><a ref={el => itemsRef2.current[index] = el} onClick={e => speaksearch(response["t"], index, itemsRef, itemsRef2, itemsRef3)} className="btn btn-small rounded-circle fw-bold arrowbutton"><img ref={el => itemsRef.current[index] = el} src="/assets/images/play.svg" width="16px" height="16px" /></a></div>
+                            <div style={{ "position": "relative", "marginRight": "-35px" }} className="arrowbutton card rounded-circle"><a ref={el => itemsRef2.current[index] = el} onClick={e => speaksearch(response["t"], index, itemsRef, itemsRef2, itemsRef3)} className="btn btn-small rounded-circle fw-bold arrowbutton"><img ref={el => itemsRef.current[index] = el} src="/assets/images/play.svg" width="16px" height="16px" /></a></div>
                           );
                         }
                         td.push(
-                          <div style={{ "position": "relative", "margin-right": "-35px" }} className="arrowbutton card rounded-circle"><a ref={el => itemsRef2.current["c-" + index] = el} onClick={e => copyToClipBoard(response["t"] + " (" + h_lang + " " + response["c"] + ":" + response["v"] + ")", index, itemsRef, itemsRef2)} className="btn btn-small rounded-circle fw-bold arrowbutton"><img ref={el => itemsRef.current["c-" + index] = el} src="/assets/images/clipboard.svg" width="16px" height="16px" /></a></div>
+                          <div style={{ "position": "relative", "marginRight": "-35px" }} className="arrowbutton card rounded-circle"><a ref={el => itemsRef2.current["c-" + index] = el} onClick={e => copyToClipBoard(response["t"] + " (" + h_lang + " " + response["c"] + ":" + response["v"] + ")", index, itemsRef, itemsRef2)} className="btn btn-small rounded-circle fw-bold arrowbutton"><img ref={el => itemsRef.current["c-" + index] = el} src="/assets/images/clipboard.svg" width="16px" height="16px" /></a></div>
                         );
                         return td;
                       })()}
