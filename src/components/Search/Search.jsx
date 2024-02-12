@@ -135,7 +135,7 @@ function Search() {
           return (obj.n == response["b"]);
         });
 
-        var splited = response["t"].replace(RegExp(q, "g"), "<span class='text-dark' style='backgroundColor: #fff952;'>" + q + "</span>");
+        var splited = response["t"].replace(RegExp(q, "g"), "<span class='text-dark' style='background-color: #fff952;'>" + q + "</span>");
         const currentFontSize = localStorage.getItem('fontSize'); //font size control
         const currentCompact = localStorage.getItem('compact');
 
