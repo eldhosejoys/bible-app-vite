@@ -159,7 +159,7 @@ function Settings() {
 
         <div>
           <label className="form-check-label" for="lanSwitch">Choose Language</label>
-          <select className="form-select" value={bibleLanguage} onChange={toggleLanguage} id="lanSwitch2">
+          <select className="form-select" value={bibleLanguage} onChange={toggleLanguage} id="lanSwitch">
             <option value="Malayalam">Malayalam</option>
             <option value="English">English</option>
             <option value="Hindi">Hindi</option>

@@ -1,7 +1,7 @@
 {
   "name": "bible-app-vite",
   "private": true,
-  "version": "1.0.3-beta.1",
+  "version": "1.0.5",
   "type": "module",
   "scripts": {
     "prebuild": "node updateEnv.js",
