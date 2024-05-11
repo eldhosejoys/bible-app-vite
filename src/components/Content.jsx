@@ -150,6 +150,7 @@ function Content() {
     b = []; // clearing array first
     let chap = JSON.stringify(r);
     const currentFontSize = localStorage.getItem('fontSize');
+
     const currentCompact = Boolean(localStorage.getItem('compact'));
     const theme = localStorage.getItem('theme');
     var colorText;
@@ -162,9 +163,11 @@ function Content() {
           <div className="col mb-2 pushdata" id={`h-${response["v"]}`}>
             <div className={`words-text-card ${currentCompact ? '' : 'shadow-md card'}`}>
               <div className="card-body rounded col-12">
+              <div className={`col ${colorText} fw-bolder fst-italic heading-color words-text fs-${currentFontSize+1}`}>  {heading.find(heading => heading.c == params.chapter && heading.v == response["v"]).t}</div>
                 <div className="d-flex flex-row row-col-3 g-2 text-break">
                   <div className={`col ${colorText} fw-bolder heading-color words-text fs-${currentFontSize}`}> {heading.find(heading => heading.c == params.chapter && heading.v == response["v"]).h}</div>
                 </div>
+                <div className={`col ${colorText} fst-italic heading-color words-text fs-${currentFontSize+1}`}> {heading.find(heading => heading.c == params.chapter && heading.v == response["v"]).sh}</div>
               </div>
             </div>
           </div>
