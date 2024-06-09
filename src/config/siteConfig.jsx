@@ -7,6 +7,7 @@ export const siteConfig = () => {
     hin_bibleurl: "/assets/json/hin-bible.json",
     tam_bibleurl: "/assets/json/tam-bible.json",
     telu_bibleurl: "/assets/json/telu-bible.json",
+    intro_url: "/assets/json/intro.json",
     headingurl: "/assets/json/headings/bibleheadings.json",  // This is actually used in the code
     titleurl: "/assets/json/title.json",
     headings: { 

@@ -2,7 +2,7 @@ import { Link, useParams, useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef, React } from "react";
 import axios from "axios";
 import { siteConfig, getBible } from "../config/siteConfig";
-import {getTranslation} from '../config/SiteTranslations';
+import { getTranslation } from '../config/SiteTranslations';
 import { speakcontent, getCacheData, addDataIntoCache, copyToClipBoard, getLanguage } from '../config/Utils';
 
 function Content() {
@@ -18,12 +18,11 @@ function Content() {
   const [chaptername, setChaptername] = useState();
 
   let b = [];
- 
-  if (isNaN(parseInt(params.book))) {  navigate("/1/1");}  
+
+  if (isNaN(parseInt(params.book))) { navigate("/1/1"); }
   else if (parseInt(params.book) > 66) { navigate("/66/1"); }
   else if (parseInt(params.book) < 1) { navigate("/1/1"); }
-  else if (isNaN(parseInt(params.chapter)) || parseInt(params.chapter) <= 0 || !params.chapter) 
-  {navigate("/" + params.book + "/1");} 
+  else if ((isNaN(parseInt(params.chapter)) || parseInt(params.chapter) <= 0 || !params.chapter) && params.chapter != 'info') { navigate("/" + params.book + "/1"); }
 
 
   let loadedCard = (e) => {
@@ -54,14 +53,14 @@ function Content() {
       return (obj.n == params.book);
     });
 
-    if(!getLanguage() || getLanguage() == "Malayalam"){ var h_lang =r[0].bm;}else{ var h_lang = r[0].be}
+    if (!getLanguage() || getLanguage() == "Malayalam") { var h_lang = r[0].bm; } else { var h_lang = r[0].be }
 
-    if(params.verse){
-      document.title = h_lang+" ("+params.chapter+":"+params.verse+") | "+getTranslation().siteTitle; 
-    }else{
-      document.title = h_lang+" ("+params.chapter+") | "+getTranslation().siteTitle; 
+    if (params.verse) {
+      document.title = h_lang + " (" + params.chapter + ":" + params.verse + ") | " + getTranslation().siteTitle;
+    } else {
+      document.title = h_lang + " (" + params.chapter + ") | " + getTranslation().siteTitle;
     }
-    
+
 
     setNavigation(
       <div className="row row-2 justify-content-center mt-4">
@@ -69,7 +68,7 @@ function Content() {
           var tp = [];
           if (params.chapter > 1 && params.chapter <= r[0].c) {
             tp.push(
-              <div className="col-auto mr-auto"><Link title={getTranslation().preChapter} to={`/${params.book}/${parseInt(params.chapter) - 1}`} ><div className="arrowbutton card rounded-circle"><a className="btn rounded-circle arrowbutton"><img className="" src="/assets/images/arrow-left.svg" alt="prev"/></a></div></Link></div>
+              <div className="col-auto mr-auto"><Link title={getTranslation().preChapter} to={`/${params.book}/${parseInt(params.chapter) - 1}`} ><div className="arrowbutton card rounded-circle"><a className="btn rounded-circle arrowbutton"><img className="" src="/assets/images/arrow-left.svg" alt="prev" /></a></div></Link></div>
             );
           }
           if (params.book > 1 && params.chapter == 1) {
@@ -79,12 +78,12 @@ function Content() {
           }
           if (params.chapter < r[0].c && params.chapter >= 1) {
             tp.push(
-              <div className="col-auto"><Link title={getTranslation().nextChapter} to={`/${params.book}/${parseInt(params.chapter) + 1}`}><div className="arrowbutton card rounded-circle"><a className="btn rounded-circle arrowbutton"><img className="" src="/assets/images/arrow-right.svg" alt="next"/></a></div> </Link> </div>
+              <div className="col-auto"><Link title={getTranslation().nextChapter} to={`/${params.book}/${parseInt(params.chapter) + 1}`}><div className="arrowbutton card rounded-circle"><a className="btn rounded-circle arrowbutton"><img className="" src="/assets/images/arrow-right.svg" alt="next" /></a></div> </Link> </div>
             );
           }
           if (params.book < 66 && params.chapter >= r[0].c) {
             tp.push(
-              <div className="col-auto"><Link title={getTranslation().nextBook} to={`/${parseInt(params.book)+1}/1`}><div className="arrowbutton card rounded-circle"><a className="btn rounded-circle arrowbutton"><img className="" src="/assets/images/arrow-right.svg" alt="next" /></a></div> </Link> </div>
+              <div className="col-auto"><Link title={getTranslation().nextBook} to={`/${parseInt(params.book) + 1}/1`}><div className="arrowbutton card rounded-circle"><a className="btn rounded-circle arrowbutton"><img className="" src="/assets/images/arrow-right.svg" alt="next" /></a></div> </Link> </div>
             );
           }
           return tp;
@@ -95,32 +94,44 @@ function Content() {
     setChaptername(h_lang);
 
     setTitle(
-      
+
       <div className="text-center mb-2">
         <div className="d-flex justify-content-center align-items-center">
-        {(() => {
-        var tp = [];
-        if (params.book > 1) {
-          tp.push(
-            <div className=""><Link title={getTranslation().preBook} to={`/${parseInt(params.book) - 1}/1`} ><div className="arrowbutton card rounded-circle" ><a className="btn btn-sm rounded-circle arrowbutton"><img className="" src="/assets/images/arrow-left.svg" alt="prev" /></a></div></Link></div>
-          );
-        }
-        return tp;
-        })()}
-        <h3 className="mx-3"> <span className="text-primary fw-bold"><Link className="text-decoration-none" to={`/${r[0].n}/1`} >{h_lang}</Link></span> - {getTranslation().chapter} {params.chapter} </h3>
-        {(() => {
-        var tp = [];
-        if (params.book < 66) {
-          tp.push(
-            <div className=""><Link title={getTranslation().nextBook} to={`/${parseInt(params.book)+1}/1`}><div className="arrowbutton card rounded-circle"><a className="btn btn-sm rounded-circle arrowbutton"><img className="" src="/assets/images/arrow-right.svg" alt="next" /></a></div> </Link> </div>
-          );
-        }
-        return tp;
-        })()}
+          {(() => {
+            var tp = [];
+            if (params.book > 1) {
+              tp.push(
+                <div className=""><Link title={getTranslation().preBook} to={`/${parseInt(params.book) - 1}/1`} ><div className="arrowbutton card rounded-circle" ><a className="btn btn-sm rounded-circle arrowbutton"><img className="" src="/assets/images/arrow-left.svg" alt="prev" /></a></div></Link></div>
+              );
+            }
+            return tp;
+          })()}
+          <h3 className="mx-3"> <span className="text-primary fw-bold"><Link className="text-decoration-none" to={`/${r[0].n}/1`} >{h_lang}</Link></span> {params.chapter && !isNaN(params.chapter) ? ` - ${getTranslation().chapter} ${params.chapter}` : ''} </h3>
+          {(() => {
+            var tp = [];
+            if (params.book < 66) {
+              tp.push(
+                <div className=""><Link title={getTranslation().nextBook} to={`/${parseInt(params.book) + 1}/1`}><div className="arrowbutton card rounded-circle"><a className="btn btn-sm rounded-circle arrowbutton"><img className="" src="/assets/images/arrow-right.svg" alt="next" /></a></div> </Link> </div>
+              );
+            }
+            return tp;
+          })()}
         </div>
         <div className="row row-cols-auto mt-3 justify-content-center">
           {(() => {
             let td = [];
+            if (getLanguage() || getLanguage() == "Malayalam") {
+              if (params.chapter == 'info') {
+                td.push(
+                  <div key='0' className={`numberbox`} ><Link className="link-dark small text-decoration-none" to={`/${params.book}/info`} ><div className={`col numberbox`} style={{ "backgroundColor": "#8D9EFF" }}>✞</div></Link> </div>
+                );
+              } else {
+                td.push(
+                  <div key='0' className={`numberbox`} ><Link className="link-dark small text-decoration-none" to={`/${params.book}/info`} ><div className={`col numberbox`}>✞</div></Link> </div>
+                );
+              }
+
+            }
             for (let i = 1; i <= r[0].c; i++) {
               if (i == params.chapter) {
                 td.push(
@@ -128,6 +139,7 @@ function Content() {
                 );
               }
               else {
+
                 td.push(
                   <div key={i} className="numberbox"><Link className="link-dark small text-decoration-none" to={`/${params.book}/${i}`} ><div className="col numberbox">{i}</div></Link> </div>
                 );
@@ -141,71 +153,119 @@ function Content() {
   }
 
   function biblecontent(response) {
-    var r = response.filter(function (obj) {
-      return (obj.b == params.book && obj.c == params.chapter); 
-    });
-   //adding headings 
-   headings().then((heading) => {
-    if(r.length <= 0){}
+
     b = []; // clearing array first
-    let chap = JSON.stringify(r);
+
     const currentFontSize = localStorage.getItem('fontSize');
 
     const currentCompact = Boolean(localStorage.getItem('compact'));
     const theme = localStorage.getItem('theme');
+
     var colorText;
-    if(theme == 'dark'){colorText = 'text-warning';}else{colorText = 'text-danger';}
-    // console.log("compact: "+currentCompact+" fontsize: "+currentFontSize);
-    r.forEach((response, index) => {
-      if((!getLanguage() || getLanguage() == 'Malayalam') && heading && heading.find(heading => heading.c == params.chapter && heading.v == response["v"])){
-        // console.log(heading.find(heading => heading.c == params.chapter && heading.v == response["v"]).h);
+    if (theme == 'dark') { colorText = 'text-warning'; } else { colorText = 'text-danger'; }
+
+    if (params.chapter == 'info') {
+
+      // titlesinfo().then(titles => {
+      //   console.log(titles.w);
+      // });
+
+      titlesinfo().then(titles => {
         b.push(
-          <div className="col mb-2 pushdata" id={`h-${response["v"]}`}>
-            <div className={`words-text-card ${currentCompact ? '' : 'shadow-md card'}`}>
-              <div className="card-body rounded col-12">
-              <div className={`col ${colorText} fw-bolder fst-italic heading-color words-text fs-${currentFontSize+1}`}>  {heading.find(heading => heading.c == params.chapter && heading.v == response["v"]).t}</div>
-                <div className="d-flex flex-row row-col-3 g-2 text-break">
-                  <div className={`col ${colorText} fw-bolder heading-color words-text fs-${currentFontSize}`}> {heading.find(heading => heading.c == params.chapter && heading.v == response["v"]).h}</div>
+          <div>
+            <div className="col mb-2 pushdata">
+            <div className={`text-center mt-3 mb-1 ${colorText} fs-${currentFontSize-1}`}><strong>{getTranslation().description}</strong></div>
+              <div className={`words-text-card ${currentCompact ? '' : 'shadow-sm card'}`}>
+                <div className=" g-2 text-center text-break">
+                  <p className={`small fw-bold col  mt-3 words-text fs-${currentFontSize}`}><img src="/assets/images/writer.png" height="28px" /> {titles.w}</p>
+                  <p className={`small fst-italic col  words-text fs-${currentFontSize}`}><img src="/assets/images/date.png" height="28px" /> {titles.d}</p>
                 </div>
-                <div className={`col ${colorText} fst-italic heading-color words-text fs-${currentFontSize+1}`}> {heading.find(heading => heading.c == params.chapter && heading.v == response["v"]).sh}</div>
               </div>
             </div>
           </div>
         );
-      }
-      b.push(
-        <div className="col mb-2 pushdata" id={`v-${response["v"]}`}>
-          <div className={`words-text-card ${currentCompact ? '' : 'shadow-sm card'}`}>
-            <div className="card-body rounded col-12" ref={el => itemsRef3.current[index] = el}>
-              <div className="d-flex flex-row row-col-3 g-2 text-break">
-                <div className={`col text-left words-text fs-${currentFontSize}`}><span className="fw-bold"><Link className={`text-decoration-none words-text fs-${currentFontSize}`} to={`/${params.book}/${params.chapter}/${response["v"]}`} >{response["v"]}.</Link></span> {response["t"]}</div>
-                <div className={`words-text-player ${currentCompact ? 'd-none' : ''} col-auto text-right ml-auto my-auto`}>
-                  {(() => {
-                    var td = [];
-                    if (('SpeechRecognition' in window || 'webkitSpeechRecognition' in window ) && navigator.onLine) {
-                      td.push(
-                        <div style={{ "position": "relative", "marginRight": "-35px" }} className="arrowbutton card rounded-circle"><a ref={el => itemsRef2.current[index] = el} onClick={e => speakcontent(chap, index,itemsRef,itemsRef2,itemsRef3)} className="btn btn-small rounded-circle fw-bold arrowbutton"><img ref={el => itemsRef.current[index] = el} src="/assets/images/play.svg" width="16px" height="16px" /></a></div>
-                      );
-                    }
-                    td.push(
-                      <div style={{ "position": "relative", "marginRight": "-35px" }} className="arrowbutton card rounded-circle"><a ref={el => itemsRef2.current["c-" + index] = el} onClick={e => copyToClipBoard(response["t"] + " (" + chaptername + " " + params.chapter + ":"+(index+1)+")", index, itemsRef,itemsRef2)} className="btn btn-small rounded-circle fw-bold arrowbutton"><img onLoad={(e) => { if (parseInt(params.verse) == index + 1) { loadedCard(index); } }} ref={el => itemsRef.current["c-" + index] = el} src="/assets/images/clipboard.svg" width="16px" height="16px" /></a></div>
-                    );
-                    return td;
-                  })()}
+      });
+
+      introinfos().then(introinfo => {
+
+        b.push(
+          <div >
+            <div className="col mb-2 pushdata" >
+              <div className={`words-text-card ${currentCompact ? '' : 'shadow-sm card'}`}>
+                <div className="d-flex flex-row row-col-3 g-2 text-break">
+                  <div className={`col text-left m-3 words-text fs-${currentFontSize}`}>{introinfo}</div>
+                </div>
+              </div>
+            </div></div>
+        );
+        setCards(b);
+      });
+
+      
+    } else if (params.chapter != 'info') {
+
+      var r = response.filter(function (obj) {
+        return (obj.b == params.book && obj.c == params.chapter);
+      });
+      let chap = JSON.stringify(r);
+
+      //adding headings 
+      headings().then((heading) => {
+        if (r.length <= 0) { }
+
+        // console.log("compact: "+currentCompact+" fontsize: "+currentFontSize);
+        r.forEach((response, index) => {
+          if ((!getLanguage() || getLanguage() == 'Malayalam') && heading && heading.find(heading => heading.c == params.chapter && heading.v == response["v"])) {
+            // console.log(heading.find(heading => heading.c == params.chapter && heading.v == response["v"]).h);
+            b.push(
+              <div className="col mb-2 pushdata" id={`h-${response["v"]}`}>
+                <div className={`words-text-card ${currentCompact ? '' : 'shadow-md card'}`}>
+                  <div className="card-body rounded col-12">
+                    <div className={`col ${colorText} fw-bolder fst-italic heading-color words-text fs-${currentFontSize + 1}`}>  {heading.find(heading => heading.c == params.chapter && heading.v == response["v"]).t}</div>
+                    <div className="d-flex flex-row row-col-3 g-2 text-break">
+                      <div className={`col ${colorText} fw-bolder heading-color words-text fs-${currentFontSize}`}> {heading.find(heading => heading.c == params.chapter && heading.v == response["v"]).h}</div>
+                    </div>
+                    <div className={`col ${colorText} fst-italic heading-color words-text fs-${currentFontSize + 1}`}> {heading.find(heading => heading.c == params.chapter && heading.v == response["v"]).sh}</div>
+                  </div>
+                </div>
+              </div>
+            );
+          }
+          b.push(
+            <div className="col mb-2 pushdata" id={`v-${response["v"]}`}>
+              <div className={`words-text-card ${currentCompact ? '' : 'shadow-sm card'}`}>
+                <div className="card-body rounded col-12" ref={el => itemsRef3.current[index] = el}>
+                  <div className="d-flex flex-row row-col-3 g-2 text-break">
+                    <div className={`col text-left words-text fs-${currentFontSize}`}><span className="fw-bold"><Link className={`text-decoration-none words-text fs-${currentFontSize}`} to={`/${params.book}/${params.chapter}/${response["v"]}`} >{response["v"]}.</Link></span> {response["t"]}</div>
+                    <div className={`words-text-player ${currentCompact ? 'd-none' : ''} col-auto text-right ml-auto my-auto`}>
+                      {(() => {
+                        var td = [];
+                        if (('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) && navigator.onLine) {
+                          td.push(
+                            <div style={{ "position": "relative", "marginRight": "-35px" }} className="arrowbutton card rounded-circle"><a ref={el => itemsRef2.current[index] = el} onClick={e => speakcontent(chap, index, itemsRef, itemsRef2, itemsRef3)} className="btn btn-small rounded-circle fw-bold arrowbutton"><img ref={el => itemsRef.current[index] = el} src="/assets/images/play.svg" width="16px" height="16px" /></a></div>
+                          );
+                        }
+                        td.push(
+                          <div style={{ "position": "relative", "marginRight": "-35px" }} className="arrowbutton card rounded-circle"><a ref={el => itemsRef2.current["c-" + index] = el} onClick={e => copyToClipBoard(response["t"] + " (" + chaptername + " " + params.chapter + ":" + (index + 1) + ")", index, itemsRef, itemsRef2)} className="btn btn-small rounded-circle fw-bold arrowbutton"><img onLoad={(e) => { if (parseInt(params.verse) == index + 1) { loadedCard(index); } }} ref={el => itemsRef.current["c-" + index] = el} src="/assets/images/clipboard.svg" width="16px" height="16px" /></a></div>
+                        );
+                        return td;
+                      })()}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      );
-    });
-    setCards(b);
-  });
+          );
+        });
+        setCards(b);
+      });
+    }
+
   }
 
 
-  const headings= async () => {
-    if(siteConfig().headings.hasOwnProperty(params.book)){
+  const headings = async () => {
+    if (siteConfig().headings.hasOwnProperty(params.book)) {
       const a = await getCacheData('cache', siteConfig().headingurl); //headings[params.book]
       if (a) {
         return a[params.book];
@@ -216,18 +276,50 @@ function Content() {
             .then(function (response) {
               addDataIntoCache('cache', siteConfig().headingurl, response);
               return response[params.book];
-            })
-            .catch(function (error) {
-              console.log(error);
-            })
-            .then(function () { });
+            });
         })();
       }
     }
   };
 
+  const introinfos = async () => {
+    const a = await getCacheData('cache', siteConfig().intro_url); //headings[params.book]
+    if (a) {
+      return a.find(item => item.n == params.book)?.t || null;
+    } else {
+      (async () => {
+        await axios
+          .get(siteConfig().intro_url)
+          .then(function (response) {
+            addDataIntoCache('cache', siteConfig().intro_url, response);
+            return response.find(item => item.n == params.book)?.t || null;
+          });
+      })();
+    }
+  };
+
+  const titlesinfo = async () => {
+    const a = await getCacheData('cache', siteConfig().titleurl); //headings[params.book]
+    if (a) {
+      return a.find(item => item.n == params.book) || null;
+    } else {
+      (async () => {
+        await axios
+          .get(siteConfig().titleurl)
+          .then(function (response) {
+            addDataIntoCache('cache', siteConfig().titleurl, response);
+            return response.find(item => item.n == params.book) || null;
+          })
+          .catch(function (error) {
+            console.log(error);
+          })
+          .then(function () { });
+      })();
+    }
+  };
+
   // useEffect(() => {
-    
+
   // },[location]);
 
   useEffect(() => {
@@ -237,7 +329,7 @@ function Content() {
         <span className="visually-hidden">Loading...</span>
       </div>
     );
-    
+
     const titlenavi = async () => {
       const a = await getCacheData('cache', siteConfig().titleurl);
       if (a) {
@@ -261,6 +353,7 @@ function Content() {
 
     const biblecontents = async () => {
       const a = await getCacheData('cache', getBible());
+
       if (a) {
         biblecontent(a);
       } else {
@@ -279,12 +372,13 @@ function Content() {
             });
         })();
       }
+
     };
     biblecontents();
 
-  }, [chaptername,location]);
+  }, [chaptername, location]);
 
-// navigate through swipe
+  // navigate through swipe
 
   // const gettitle = async (side) => {
   //   const response = await getCacheData('cache', siteConfig().titleurl);
@@ -300,7 +394,7 @@ function Content() {
   //       navigate( `/${params.book}/${parseInt(params.chapter)+1}`);
   //       params.chapter = parseInt(params.chapter)+1;
   //     }
-  
+
   //   }};
 
 

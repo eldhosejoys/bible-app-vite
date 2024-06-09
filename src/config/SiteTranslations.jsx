@@ -16,6 +16,7 @@ export const getTranslation =  () => {
             writer : "ഗ്രന്ഥകാരൻ",
             writtendate : "എഴുതിയ കാലഘട്ടം",
             read:"വായിക്കുക",
+            description:"വിവരണം",
             siteAboutTitle :"വെബ്സൈറ്റിനെ സംബന്ധിച്ച്",
             numExtra :["-ാം ","-ാം ","-ാം ","-ാം "]
         };
@@ -34,6 +35,7 @@ export const getTranslation =  () => {
             writer : "Writer",
             writtendate : "Written Period",
             read:"Read",
+            description:"Description",
             siteAboutTitle :"About the Website",
             numExtra :['-st ','-nd ','-rd ','-th ']
         }; 
