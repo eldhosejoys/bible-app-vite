@@ -120,7 +120,7 @@ function Content() {
         <div className="row row-cols-auto mt-3 justify-content-center">
           {(() => {
             let td = [];
-            if (getLanguage() || getLanguage() == "Malayalam") {
+            if (!getLanguage() || getLanguage() == "Malayalam") {
               if (params.chapter == 'info') {
                 td.push(
                   <div key='0' className={`numberbox`} ><Link className="link-dark small text-decoration-none" to={`/${params.book}/info`} ><div className={`col numberbox`} style={{ "backgroundColor": "#8D9EFF" }}>✞</div></Link> </div>
@@ -164,7 +164,7 @@ function Content() {
     var colorText;
     if (theme == 'dark') { colorText = 'text-warning'; } else { colorText = 'text-danger'; }
 
-    if (params.chapter == 'info') {
+    if (params.chapter == 'info' && (!getLanguage() || getLanguage() == 'Malayalam')) {
 
       // titlesinfo().then(titles => {
       //   console.log(titles.w);
@@ -172,7 +172,7 @@ function Content() {
 
       titlesinfo().then(titles => {
         b.push(
-          <div>
+          <div key='titlesinfo'>
             <div className="col mb-2 pushdata">
             <div className={`text-center mt-3 mb-1 ${colorText} fs-${currentFontSize-1}`}><strong>{getTranslation().description}</strong></div>
               <div className={`words-text-card ${currentCompact ? '' : 'shadow-sm card'}`}>
@@ -189,7 +189,7 @@ function Content() {
       introinfos().then(introinfo => {
 
         b.push(
-          <div >
+          <div key='introinfos'>
             <div className="col mb-2 pushdata" >
               <div className={`words-text-card ${currentCompact ? '' : 'shadow-sm card'}`}>
                 <div className="d-flex flex-row row-col-3 g-2 text-break">
