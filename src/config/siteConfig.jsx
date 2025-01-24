@@ -23,6 +23,7 @@ export const siteConfig = () => {
       10: "/assets/json/headings/10.json",
       11: "/assets/json/headings/11.json",
       12: "/assets/json/headings/12.json",
+      13: "/assets/json/headings/13.json",
       18: "/assets/json/headings/18.json",
       19: "/assets/json/headings/19.json",
       20: "/assets/json/headings/20.json",
