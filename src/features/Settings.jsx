@@ -4,6 +4,7 @@ import Button from 'react-bootstrap/Button';
 import Modal from 'react-bootstrap/Modal';
 import { getTranslation } from '../config/SiteTranslations';
 import { handleFontSize, handleCompact, getCacheData, getLanguage, setLanguage } from '../config/Utils';
+import Notes from "./Notepad";
 
 
 function Settings() {
@@ -121,6 +122,18 @@ function Settings() {
     handleFontSize(event);
   }
 
+
+  // Function to hide the Settings modal (passed to Notes)
+  const hideSettingsModal = () => {
+    setShowModal(false);
+  };
+
+  // Function to show the Settings modal again (passed to Notes)
+  const showSettingsModal = () => {
+    setShowModal(true);
+  };
+
+
   const randomVerse = () => {
     const biblecontents = async () => {
       const a = await getCacheData('cache', "/assets/json/bible.json");
@@ -179,7 +192,8 @@ function Settings() {
         </form>
 
         <a onClick={randomVerse} className="btn btn-primary btn-sm">random verse</a>
-
+        &nbsp;
+        <Notes onNotesOpen={hideSettingsModal} onNotesClose={showSettingsModal} />
 
 
       </Modal.Body>
