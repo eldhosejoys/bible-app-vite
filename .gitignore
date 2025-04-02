@@ -12,6 +12,9 @@ node_modules
 dist-ssr
 *.local
 
+# Build output
+bible-app-vite-win32-x64
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
