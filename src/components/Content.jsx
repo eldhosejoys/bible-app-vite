@@ -215,15 +215,34 @@ function Content() {
 
         // console.log("compact: "+currentCompact+" fontsize: "+currentFontSize);
         r.forEach((response, index) => {
+
+          let metaTag = document.querySelector('meta[name="description"]');
+          if (!metaTag) {
+            metaTag = document.createElement('meta');
+            metaTag.name = "description";
+            document.head.appendChild(metaTag);
+          }
+          
+          if (response["v"] == 1 && !params.verse && response["c"] == params.chapter) {
+             metaTag.content = response["t"];
+          }
+
           if ((!getLanguage() || getLanguage() == 'Malayalam') && heading && heading.find(heading => heading.c == params.chapter && heading.v == response["v"])) {
             // console.log(heading.find(heading => heading.c == params.chapter && heading.v == response["v"]).h);
+            
+
+            const headingTitle = heading.find(heading => heading.c == params.chapter && heading.v == response["v"]).h;
+            if (response["v"] == 1 && !params.verse && headingTitle) {
+              metaTag.content = headingTitle;
+            }
+            
             b.push(
               <div className="col mb-2 pushdata" id={`h-${response["v"]}`}>
                 <div className={`words-text-card ${currentCompact ? '' : 'shadow-md card'}`}>
                   <div className="card-body rounded col-12">
                     <div className={`col ${colorText} fw-bolder fst-italic heading-color words-text fs-${currentFontSize + 1}`}>  {heading.find(heading => heading.c == params.chapter && heading.v == response["v"]).t}</div>
                     <div className="d-flex flex-row row-col-3 g-2 text-break">
-                      <div className={`col ${colorText} fw-bolder heading-color words-text fs-${currentFontSize}`}> {heading.find(heading => heading.c == params.chapter && heading.v == response["v"]).h}</div>
+                      <div className={`col ${colorText} fw-bolder heading-color words-text fs-${currentFontSize}`}> {headingTitle}</div>
                     </div>
                     <div className={`col ${colorText} fst-italic heading-color words-text fs-${currentFontSize + 1}`}> {heading.find(heading => heading.c == params.chapter && heading.v == response["v"]).sh}</div>
                   </div>
@@ -231,6 +250,11 @@ function Content() {
               </div>
             );
           }
+
+          if(params.verse && params.verse == response["v"]){
+            metaTag.content = response["t"];
+          }
+
           b.push(
             <div className="col mb-2 pushdata" id={`v-${response["v"]}`}>
               <div className={`words-text-card ${currentCompact ? '' : 'shadow-sm card'}`}>
