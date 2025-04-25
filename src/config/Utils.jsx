@@ -72,6 +72,10 @@ export const addDataIntoCache = (cacheName, url, response) => {
 
 // Function to get cache data
 export const getCacheData = async (cacheName, url) => {
+  if (typeof window === 'undefined' || !('caches' in window)) {
+    console.warn('Cache API not available');
+    return false;
+  }
   const cacheStorage = await caches.open(cacheName);
   const cachedResponse = await cacheStorage.match(url); // Returns a promise w/ matched cache
   if (!cachedResponse || !cachedResponse.ok) { return false }

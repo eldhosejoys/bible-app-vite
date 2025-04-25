@@ -33,13 +33,14 @@ function Settings() {
 
     document.documentElement.setAttribute('data-bs-theme', currentTheme || 'dark');
 
+    initializeLanguageFromQuery();
 
-    const currentBibleLanguage = getLanguage();
-    setBibleLanguage(currentBibleLanguage || 'Malayalam');
-    if (!currentBibleLanguage) {
-      setLanguage('Malayalam');
-      setBibleLanguage('Malayalam');
-    }
+    // const currentBibleLanguage = getLanguage();
+    // setBibleLanguage(currentBibleLanguage || 'Malayalam');
+    // if (!currentBibleLanguage) {
+    //   setLanguage('Malayalam');
+    //   setBibleLanguage('Malayalam');
+    // }
 
     const fontSizeValue = localStorage.getItem('fontSize');
     setFontSize(fontSizeValue || 5);
@@ -102,6 +103,26 @@ function Settings() {
     }
   };
 
+
+
+
+  const initializeLanguageFromQuery = () => {
+    const supportedLanguages = ['English', 'Malayalam', 'Tamil', 'Telugu', 'Hindi'];
+    const urlParams = new URLSearchParams(window.location.search);
+    const queryLang = urlParams.get('lang')?.replace(/^\w/, c => c.toUpperCase());
+    const currentBibleLanguage = getLanguage();
+
+    if (!currentBibleLanguage || (!queryLang || !supportedLanguages.includes(queryLang))) {
+      setLanguage('Malayalam');
+      setBibleLanguage('Malayalam');
+      return;
+    }
+    else if (queryLang && supportedLanguages.includes(queryLang)) {
+      setBibleLanguage(queryLang);
+      setLanguage(queryLang);
+    }
+  };
+  
   // Define a function to toggle the compact
   const toggleCompact = () => {
     setIsCompactChecked(isCompactChecked === true ? false : true);
