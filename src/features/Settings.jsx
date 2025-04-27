@@ -112,7 +112,7 @@ function Settings() {
     const queryLang = urlParams.get('lang')?.replace(/^\w/, c => c.toUpperCase());
     const currentBibleLanguage = getLanguage();
 
-    if (!currentBibleLanguage || (!queryLang || !supportedLanguages.includes(queryLang))) {
+    if (!currentBibleLanguage && (!queryLang || !supportedLanguages.includes(queryLang))) {
       setLanguage('Malayalam');
       setBibleLanguage('Malayalam');
       return;
@@ -120,6 +120,12 @@ function Settings() {
     else if (queryLang && supportedLanguages.includes(queryLang)) {
       setBibleLanguage(queryLang);
       setLanguage(queryLang);
+      return;
+    }
+    else {
+      setBibleLanguage(currentBibleLanguage);
+      setLanguage(currentBibleLanguage);
+      return;
     }
   };
   
