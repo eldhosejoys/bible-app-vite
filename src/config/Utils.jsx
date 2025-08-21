@@ -273,3 +273,7 @@ export const setLanguage = (lang) => {
   localStorage.setItem('bible-language', lang);
   return true;
 };
+
+export const areReferencesEnabled = () => {
+  return localStorage.getItem('showReferences') === 'true';
+};

@@ -10,6 +10,7 @@ export const siteConfig = () => {
     intro_url: "/assets/json/intro.json",
     headingurl: "/assets/json/headings/bibleheadings.json",  // This is actually used in the code
     titleurl: "/assets/json/title.json",
+    cross_reference_path: "/assets/json/books-cross/",
     headings: { 
       1: "/assets/json/headings/1.json",
       2: "/assets/json/headings/2.json",

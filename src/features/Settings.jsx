@@ -20,6 +20,9 @@ function Settings() {
   const [fontSize, setFontSize] = useState(6);
   const [isThemeChecked, setIsThemeChecked] = useState(false);
   const [isCompactChecked, setIsCompactChecked] = useState(false);
+  const [showReferences, setShowReferences] = useState(false);
+
+
 
   useEffect(() => {
     const currentTheme = localStorage.getItem('theme');
@@ -55,6 +58,9 @@ function Settings() {
       setIsCompactChecked(false);
       localStorage.removeItem('compact');
     }
+
+    const showRefs = localStorage.getItem('showReferences');
+    setShowReferences(showRefs === 'true'); // Defaults to false if not set
 
   }, []);
 
@@ -128,11 +134,22 @@ function Settings() {
       return;
     }
   };
-  
+
   // Define a function to toggle the compact
   const toggleCompact = () => {
     setIsCompactChecked(isCompactChecked === true ? false : true);
     handleCompact(isCompactChecked === true ? false : true);
+  };
+
+  const toggleShowReferences = () => {
+    const newShowState = !showReferences;
+    setShowReferences(newShowState);
+    if (newShowState) {
+      localStorage.setItem('showReferences', 'true');
+    } else {
+      localStorage.removeItem('showReferences');
+    }
+    window.location.reload(); // Reload to apply the change
   };
 
   function handleDeleteCache() {
@@ -196,6 +213,12 @@ function Settings() {
           <label className="form-check-label" for="compactSwitch">Compact</label>
           <input className="form-check-input" type="checkbox" checked={isCompactChecked} onChange={toggleCompact} id="compactSwitch" />
         </div>
+
+        <div className="form-check form-switch">
+          <label className="form-check-label" htmlFor="referencesSwitch">Show References</label>
+          <input className="form-check-input" type="checkbox" checked={showReferences} onChange={toggleShowReferences} id="referencesSwitch" />
+        </div>
+
 
         <div>
           <label className="form-check-label" for="lanSwitch">Choose Language</label>
