@@ -57,6 +57,7 @@ export const copyToClipBoard = async (copyMe, index, itemsRef, itemsRef2) => {
 
 // Function to add our give data into cache
 export const addDataIntoCache = (cacheName, url, response) => {
+  if (!navigator.onLine) return;
   const data = new Response(JSON.stringify(response));
   if ('caches' in window) {
     caches.open(cacheName).then(function (cache) {
@@ -64,9 +65,6 @@ export const addDataIntoCache = (cacheName, url, response) => {
         url,
       ]);
     });
-    // caches.open(cacheName).then((cache) => {
-    //   cache.put(url, data);
-    // });
   }
 }
 
