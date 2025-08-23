@@ -138,6 +138,29 @@ function Search() {
     }
   }, [q, pval, filteredResults.length, navigate, rangevalue]);
 
+  useEffect(() => {
+    // Trim whitespace, then remove an optional leading and/or trailing slash
+    const cleanQ = q.trim().replace(/^\//, '').replace(/\/$/, '');
+    // Regex to validate path-like structures: 1, 1/1, 1/1/1, 1/1/1-5
+    // This ensures the entire cleaned string matches the expected format and
+    // prevents partial matches or invalid characters.
+    const pathRegex = /^(\d+)(?:\/(\d+))?(?:\/(\d+(?:-\d+)?))?$/;
+    // Test if the cleaned query matches the path format
+    if (pathRegex.test(cleanQ)) {
+      const parts = cleanQ.split('/');
+      // If only a book number is provided (e.g., "1", "/1", "1/"),
+      // navigate to the first chapter of that book.
+      if (parts.length === 1) {
+        navigate(`/${parts[0]}/1`);
+      } else {
+        // For other valid paths (e.g., "1/2", "/1/2/"), navigate directly.
+        // A leading slash is added to ensure it's a valid root-relative path.
+        navigate(`/${cleanQ}`);
+      }
+    }
+    // If the regex test fails, do nothing and let the standard search logic proceed.
+  }, [q, navigate]);
+
   // Optimization: Memoize the result count message.
   const resultCountMessage = useMemo(() => {
     const r_length = filteredResults.length;

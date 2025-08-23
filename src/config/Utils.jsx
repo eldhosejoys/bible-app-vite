@@ -3,11 +3,16 @@ import axios from 'axios';
 let cancelToken;
 
 export const transliterate = async (word) => {
+  // Skip transliteration if input has only digits, /, -, , or .
+  if (/[0-9\-\/,?:_]/.test(word)) {
+    return [word];
+  }
+
   // Cancel the previous request (if any)
   if (cancelToken) {
     cancelToken.cancel("New request made");
   }
-  // Create a new CancelToken
+
   cancelToken = axios.CancelToken.source();
   let langCode = getLanguageCode();
   const url = `https://inputtools.google.com/request?text=${word}&itc=${langCode}-t-i0-und&num=5&cp=0&cs=1&ie=utf-8&oe=utf-8`;
@@ -19,14 +24,14 @@ export const transliterate = async (word) => {
     const transliteratedValue = response.data[1][0][1];
     return transliteratedValue;
   } catch (error) {
-    if (axios.isCancel(error)) {
-      // console.log(error.message);
-    } else {
+    if (!axios.isCancel(error)) {
       console.log(error);
     }
     return [];
   }
 };
+
+
 
 
 export const copyToClipBoard = async (copyMe, index, itemsRef, itemsRef2) => {
@@ -118,7 +123,7 @@ export const speakcontent = async (chap, verse, itemsRef, itemsRef2, itemsRef3, 
 
   resetAll();
 
-  const playSentence = (sentence, i) => 
+  const playSentence = (sentence, i) =>
     new Promise((resolve, reject) => {
       const utter = new SpeechSynthesisUtterance(sentence);
       utter.lang = getLanguageCode();
