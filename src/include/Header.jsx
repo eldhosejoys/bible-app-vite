@@ -6,24 +6,20 @@ import Settings from "../features/Settings";
 import IndexButton from "../features/IndexButton";
 import { getTranslation } from '../config/SiteTranslations';
 
-
-function Header(props) {
-  // const [chapters, setChapters] = useState([]);
-  const [input, setInput] = useState(props?.value ?? '');
-  const [searchParams, setSearchParams] = useSearchParams();
-  const regInput = useRef();
+function Header({ value = '' }) {
+  const [input, setInput] = useState(value);
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [activeSuggestion, setActiveSuggestion] = useState(0);
+  const [placeholder, setPlaceholder] = useState(getTranslation().searchPlaceHolder);
+
+  const regInput = useRef();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [placeholder, setPlaceholder] = useState(getTranslation().searchPlaceHolder);
-
-  function handleInput(e) {
-    const value = e;
+  const handleInput = async (value) => {
     setInput(value);
-
     if (getLanguage() === 'English' || !value || value.endsWith(" ")) {
       setShowSuggestions(false);
       setSuggestions([]);
@@ -34,172 +30,159 @@ function Header(props) {
     const lastWord = words.pop();
     const baseString = words.join(' ');
 
-    transliterate(lastWord).then((transliteratedWords) => {
-      let newSuggestions = transliteratedWords
-        .map(s => baseString ? `${baseString} ${s}` : s)
-        .filter(s => s !== value); // remove duplicate of original input
+    const transliterated = await transliterate(lastWord);
+    const newSuggestions = Array.from(new Set([
+      ...transliterated.map(s => baseString ? `${baseString} ${s}` : s),
+      value
+    ]));
 
-      // Only add original input if it’s unique
-      if (!newSuggestions.includes(value)) {
-        newSuggestions.push(value);
-      }
+    setSuggestions(newSuggestions);
+    setActiveSuggestion(0);
+    setShowSuggestions(newSuggestions.length > 0);
+  };
 
-      setSuggestions(newSuggestions);
-      setActiveSuggestion(0);
-      setShowSuggestions(!!newSuggestions.length);
-    });
-  }
-
-  function handleSuggestionClick(suggestion) {
+  const handleSuggestionClick = (suggestion) => {
     setInput(suggestion);
-    setActiveSuggestion(-1); // reset active suggestion
-    setShowSuggestions(false); // hide suggestion list
-  }
+    setShowSuggestions(false);
+    setActiveSuggestion(-1);
+  };
 
-  function handleKeyDown(e) {
-    if (e.keyCode === 38) { // up arrow key
-      e.preventDefault();
-      setActiveSuggestion(prev => (prev > 0 ? prev - 1 : suggestions.length - 1));
-    } else if (e.keyCode === 40) { // down arrow key
-      e.preventDefault();
-      setActiveSuggestion(prev => (prev < suggestions.length - 1 ? prev + 1 : 0));
-    } else if (e.keyCode === 13) { // enter key
-      e.preventDefault();
-      if (showSuggestions && suggestions.length > 0) {
-        setInput(suggestions[activeSuggestion]);
-        setShowSuggestions(false);
-      } else {
-        // handle search
-        navigate(`/search?q=${regInput.current.value}`);
-      }
+  const handleKeyDown = (e) => {
+    const maxIndex = suggestions.length - 1;
 
-    } else if (e.keyCode === 32 || e.endsWith(" ")) { // space key
-      handleSuggestionClick(suggestions[activeSuggestion]);
+    switch (e.keyCode) {
+      case 38: // up
+        e.preventDefault();
+        setActiveSuggestion(prev => (prev > 0 ? prev - 1 : maxIndex));
+        break;
+      case 40: // down
+        e.preventDefault();
+        setActiveSuggestion(prev => (prev < maxIndex ? prev + 1 : 0));
+        break;
+      case 13: // enter
+        e.preventDefault();
+        if (showSuggestions && suggestions.length && activeSuggestion >= 0) {
+          handleSuggestionClick(suggestions[activeSuggestion]);
+        } else {
+          navigate(`/search?q=${regInput.current.value}`);
+        }
+        break;
+      case 32: // space
+        if (showSuggestions && activeSuggestion >= 0) handleSuggestionClick(suggestions[activeSuggestion]);
+        break;
+      default:
+        break;
     }
-  }
+  };
 
-  function numExtraKeys() {
+  const numExtraKeys = () => {
     const number = parseInt(location.pathname.split("/")[2]);
-    switch (number) {
-      case 1: return getTranslation().numExtra[0];
-      case 2: return getTranslation().numExtra[1];
-      case 3: return getTranslation().numExtra[2];
-      default: return getTranslation().numExtra[3];
-    }
-
-  }
-
+    return isNaN(number) ? '' : number +(getTranslation().numExtra[number - 1] || getTranslation().numExtra[3]);
+  };
 
   useEffect(() => {
-    if (searchParams.get("q") == null) {
-      setInput(regInput.current.value);
-    } else {
-      setInput(searchParams.get("q"));
-    }
-
+    setInput(searchParams.get("q") || regInput.current.value);
   }, [searchParams]);
 
+  const setDynamicPlaceholder = async () => {
+    const pathParts = location.pathname.split("/").filter(Boolean);
+    if (pathParts.length < 2) {
+      setPlaceholder(getTranslation().searchPlaceHolder);
+      return;
+    }
+
+    let chapterNum, verseNum;
+    if (pathParts[2] && !pathParts[1].includes(':')) {
+      chapterNum = pathParts[1];
+      verseNum = pathParts[2];
+    } else if (pathParts[1].includes(':')) {
+      [chapterNum, verseNum] = pathParts[1].split(':');
+    } else {
+      chapterNum = pathParts[1];
+    }
+
+    const resp = await getCacheData('cache', siteConfig().titleurl);
+    if (resp) {
+      const chapterIndex = parseInt(chapterNum);
+      if (!isNaN(chapterIndex) && resp[chapterIndex - 1]) {
+        const text = getLanguage() === 'Malayalam' 
+          ? resp[chapterIndex - 1].bm 
+          : resp[chapterIndex - 1].be;
+        setPlaceholder(`${text} : ${verseNum || ''}${numExtraKeys()} ${getTranslation().chapter}`);
+      } else {
+        setPlaceholder(getTranslation().searchPlaceHolder);
+      }
+    }
+  };
+
   useEffect(() => {
-    placeHolder();
+    setDynamicPlaceholder();
   }, [location]);
 
-  function placeHolder() {
-    const pattern = /\d+(\/\d+)*/; // regular expression to match the pattern "/number/number"
-    if (pattern.test(location.pathname)) {
-      const loadindex = async () => {
-        const resp = await getCacheData('cache', siteConfig().titleurl);
-        if (resp) {
-          if (!getLanguage() || getLanguage() == "Malayalam") { var h_lang = resp[location.pathname.split("/")[1] - 1].bm; } else { var h_lang = resp[location.pathname.split("/")[1] - 1].be }
-          const placer = h_lang + " : " + location.pathname.split("/")[2] + numExtraKeys() + getTranslation().chapter;
-          setPlaceholder(placer);
-        }
-      };
-      loadindex();
-    } else {
-      setPlaceholder(getTranslation().searchPlaceHolder); // Search for Verses in English
-    }
-  }
-
-  function handleMouseEnter() { setPlaceholder(getTranslation().searchPlaceHolder); }
-
-  function handleMouseLeave() { placeHolder(); }
+  const resetPlaceholder = () => setPlaceholder(getTranslation().searchPlaceHolder);
 
   return (
-    <>
-      <nav
-        className="navbar navbar-expand-sm navbar-dark sticky-top"
-        style={{ backgroundColor: "#344955" }}
-      >
-        <div className="container justify-content-center mb-2">
-          <Link className="navbar-brand" to="/">
-            <img
-              loading="lazy"
-              src="/assets/images/ml-bible.webp"
-              alt="ജീവന്റെവചനം മലയാളം"
-              style={{ height: "55px", marginTop: "-5px" }}
-            />
-          </Link>
+    <nav className="navbar navbar-expand-sm navbar-dark sticky-top" style={{ backgroundColor: "#344955" }}>
+      <div className="container justify-content-center mb-2">
+        <Link className="navbar-brand" to="/">
+          <img
+            loading="lazy"
+            src="/assets/images/ml-bible.webp"
+            alt="ജീവന്റെവചനം മലയാളം"
+            style={{ height: "55px", marginTop: "-5px" }}
+          />
+        </Link>
 
-          <span className="form-inline input-group">
-            <input
-              ref={regInput}
-              className="form-control"
-              type="search"
-              placeholder={placeholder}
-              value={input}
-              onChange={(e) => handleInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              onBlur={() => { setTimeout(() => setShowSuggestions(false), 100) }}
-              aria-label="Search"
-              name="q"
-              required=""
-              onFocus={handleMouseEnter}
-              onMouseEnter={handleMouseEnter}
-              onMouseLeave={handleMouseLeave}
-            />
+        <span className="form-inline input-group">
+          <input
+            ref={regInput}
+            className="form-control"
+            type="search"
+            placeholder={placeholder}
+            value={input}
+            onChange={(e) => handleInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            onBlur={() => setTimeout(() => setShowSuggestions(false), 100)}
+            onFocus={resetPlaceholder}
+            onMouseEnter={resetPlaceholder}
+            onMouseLeave={setDynamicPlaceholder}
+            aria-label="Search"
+            name="q"
+            required
+          />
 
-            {showSuggestions && suggestions.length > 0 && getLanguage() != 'English' && (
-              <ul className="suggestion-list">
-                {suggestions.map((suggestion, index) => (
-                  <li
-                    key={suggestion}
-                    className={index === activeSuggestion ? "active" : ""}
-                    onClick={() => handleSuggestionClick(suggestion)}
-                  >
-                    {suggestion}
-                  </li>
-                ))}
-              </ul>
-            )}
+          {showSuggestions && suggestions.length && getLanguage() !== 'English' && (
+            <ul className="suggestion-list">
+              {suggestions.map((s, i) => (
+                <li
+                  key={s}
+                  className={i === activeSuggestion ? "active" : ""}
+                  onClick={() => handleSuggestionClick(s)}
+                >
+                  {s}
+                </li>
+              ))}
+            </ul>
+          )}
 
-            <Link
-              type="button"
-              to={`/search?q=` + input}
-              className="btn btn-light text-body me-2 rounded-end"
+          <Link to={`/search?q=${input}`} className="btn btn-light text-body me-2 rounded-end">
+            <svg
+              width="1em"
+              height="1em"
+              viewBox="0 0 16 16"
+              className="bi bi-search blink_me"
+              fill="currentColor"
+              xmlns="http://www.w3.org/2000/svg"
             >
-              <svg
-                width="1em"
-                height="1em"
-                viewBox="0 0 16 16"
-                className="bi bi-search blink_me"
-                fill="currentColor"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M10.442 10.442a1 1 0 0 1 1.415 0l3.85 3.85a1 1 0 0 1-1.414 1.415l-3.85-3.85a1 1 0 0 1 0-1.415z"
-                ></path>
-                <path
-                  fillRule="evenodd"
-                  d="M6.5 12a5.5 5.5 0 1 0 0-11 5.5 5.5 0 0 0 0 11zM13 6.5a6.5 6.5 0 1 1-13 0 6.5 6.5 0 0 1 13 0z"
-                ></path>
-              </svg>
-            </Link>
-            <IndexButton /> <Settings />
-          </span>
-        </div>
-      </nav>
-    </>
+              <path fillRule="evenodd" d="M10.442 10.442a1 1 0 0 1 1.415 0l3.85 3.85a1 1 0 0 1-1.414 1.415l-3.85-3.85a1 1 0 0 1 0-1.415z" />
+              <path fillRule="evenodd" d="M6.5 12a5.5 5.5 0 1 0 0-11 5.5 5.5 0 0 0 0 11zM13 6.5a6.5 6.5 0 1 1-13 0 6.5 6.5 0 0 1 13 0z" />
+            </svg>
+          </Link>
+          <IndexButton />
+          <Settings />
+        </span>
+      </div>
+    </nav>
   );
 }
 

@@ -19,8 +19,8 @@ function parseVerseRange(verseParam) {
   return []; // Invalid format
 }
 
-function Content() {
-  let params = useParams();
+function Content({ book, chapter, verse }) {
+  let params = { book, chapter, verse };
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -48,7 +48,7 @@ function Content() {
   else if (parseInt(params.book) > 66) { navigate("/66/1"); }
   else if (parseInt(params.book) < 1) { navigate("/1/1"); }
   else if ((isNaN(parseInt(params.chapter)) || parseInt(params.chapter) <= 0 || !params.chapter) && params.chapter !== 'info') {
-    navigate(`/ ${params.book}/1`);
+    navigate(`/${params.book}/1`);
   }
 
   const handleCrossReferenceClick = (crossRefData, verseIndex) => {

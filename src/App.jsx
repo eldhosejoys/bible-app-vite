@@ -8,7 +8,8 @@ import Footer from './include/Footer';
 // import Search from './components/Search/Search';
 import Settings from './features/Settings';
 import About from './components/About';
-import {Search} from './components/Search';
+import { Search } from './components/Search';
+import VerseRoute from './routes/VerseRoute';
 
 function App() {
     return (
@@ -21,11 +22,10 @@ function App() {
                         <Route path='/search' element={<Search />} />
                         <Route path='/settings' element={<Settings />} />
                         <Route path='/about' element={<About />} />
-                        <Route path='/:book' element={<Content />} />
-                        <Route path='/:book/:chapter' element={<Content />} />
-                        <Route path='/:book/:chapter/:verse' element={<Content />} />
-                        <Route path='/verse/:book/:chapter' element={<Content />} />
-                        <Route path='/verse/:book/:chapter/:verse' element={<Content />} />
+                        {/* Single flexible route for all book/chapter/verse formats */}
+                        <Route path='/:book/:chapterOrChapterVerse/:verse' element={<VerseRoute />} />
+                        <Route path='/:book/:chapterOrChapterVerse' element={<VerseRoute />} />
+                        <Route path='/:book' element={<VerseRoute />} />
                         <Route path='*' element={<Error />} status={404} />
                     </Routes>
                 </main>
