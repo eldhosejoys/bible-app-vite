@@ -297,7 +297,7 @@ function Content() {
           const versesInRange = currentChapterVerses.slice(i, i + (endVerse - startVerse + 1));
           
           // Collect all cross-references for the verses in this group
-          const groupCrossReferences = crossRefData
+          const groupCrossReferences = Array.isArray(crossRefData)
             ? versesInRange.flatMap(verse =>
               crossRefData.filter(cr => cr.c == params.chapter && cr.v == verse.v)
             )
@@ -370,7 +370,7 @@ function Content() {
             );
           }
 
-          const verseCrossReferences = crossRefData ? crossRefData.filter(cr => cr.c == params.chapter && cr.v == verseData.v) : [];
+          const verseCrossReferences = Array.isArray(crossRefData) ? crossRefData.filter(cr => cr.c == params.chapter && cr.v == verseData.v) : [];
 
           finalContent.push(
             <div key={`v-${verseData.v}`} className="col mb-2 pushdata" id={`v-${verseData.v}`}>
