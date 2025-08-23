@@ -10,7 +10,7 @@ import Topdown from "../../features/Topdown";
 // React can skip re-rendering an item if its props haven't changed.
 // This is highly effective when rendering a large list of items.
 const MemoizedSearchResultItem = React.memo(({ item, index, q, title, onSpeak, onCopy, itemRefs }) => {
-  const splited = item.t.replace(new RegExp(q, "g"), `<span class='text-dark' style='background-color: #fff952;'>${q}</span>`);
+  const splited = item.t.replace(new RegExp(q, "gi"), (match) => `<span class='text-dark' style='background-color: #fff952;'>${match}</span>`);
   const currentFontSize = localStorage.getItem('fontSize');
   const currentCompact = localStorage.getItem('compact');
   const bookTitle = !getLanguage() || getLanguage() === "Malayalam" ? title.bm : title.be;
@@ -118,7 +118,8 @@ function Search() {
   // This avoids re-filtering the entire bible on every render.
   const filteredResults = useMemo(() => {
     if (!q || bibleData.length === 0) return bibleData;
-    return bibleData.filter(obj => obj.t.includes(q));
+    return bibleData.filter(obj => obj.t.toLowerCase().includes(q.toLowerCase()));
+
   }, [q, bibleData]);
 
 
@@ -249,7 +250,7 @@ function Search() {
             <section id="scroll-target">
               <div className="container my-2">
                 <div className="row row-cols-1 justify-content-center">
-                   {resultCountMessage}
+                  {resultCountMessage}
                   {isLoading ? (
                     <div className="spinner-grow text-center" role="status">
                       <span className="visually-hidden">Loading...</span>
