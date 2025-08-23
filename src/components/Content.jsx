@@ -4,45 +4,7 @@ import axios from "axios";
 import { siteConfig, getBible } from "../config/siteConfig";
 import { getTranslation } from '../config/SiteTranslations';
 import { speakcontent, getCacheData, addDataIntoCache, copyToClipBoard, getLanguage, areReferencesEnabled } from '../config/Utils';
-
-// This sub-component is correct and does not need any changes.
-function CrossReferenceVerse({ to, fullBibleData, titles }) {
-  const startRef = to[0];
-  const endRef = to.length > 1 ? to[1] : startRef;
-  const [startBook, startChapter, startVerse] = startRef.split('/').map(Number);
-  const [endBook, endChapter, endVerse] = endRef.split('/').map(Number);
-
-  const referencedVerses = fullBibleData.filter(verse => {
-    const verseBook = Number(verse.b);
-    const verseChapter = Number(verse.c);
-    const verseNum = Number(verse.v);
-    if (verseBook !== startBook) return false;
-    if (startChapter === endChapter) return (verseChapter === startChapter && verseNum >= startVerse && verseNum <= endVerse);
-    const inStartChapter = (verseChapter === startChapter && verseNum >= startVerse);
-    const inEndChapter = (verseChapter === endChapter && verseNum <= endVerse);
-    const inMiddleChapter = (verseChapter > startChapter && verseChapter < endChapter);
-    return inStartChapter || inEndChapter || inMiddleChapter;
-  });
-
-  if (referencedVerses.length === 0) return null;
-
-  const bookInfo = titles.find(t => t.n === startBook);
-  const bookName = bookInfo ? (!getLanguage() || getLanguage() === "Malayalam" ? bookInfo.bm : bookInfo.be) : `Book ${startBook}`;
-  const referenceTitle = startRef === endRef
-    ? `${bookName} ${startChapter}:${startVerse}`
-    : startChapter === endChapter
-      ? `${bookName} ${startChapter}:${startVerse}-${endVerse}`
-      : `${bookName} ${startChapter}:${startVerse} - ${endChapter}:${endVerse}`;
-
-  return (
-    <div className="p-2 mt-2 border rounded" style={{ color: '#000', backgroundColor: '#faebd7' }}>
-      <p className="fw-bold mb-1"><Link to={`/${startRef}`} className="text-decoration-none text-danger" title={referenceTitle}>{referenceTitle}</Link></p>
-      {referencedVerses.map(verse => (
-        <span key={verse.v}><strong className="me-1">{verse.v}</strong>{verse.t}{' '}</span>
-      ))}
-    </div>
-  );
-}
+import CrossReferenceVerse from "./CrossReferenceVerse";
 
 // Helper function to parse verse parameter like "4" or "4-7"
 function parseVerseRange(verseParam) {
@@ -68,6 +30,7 @@ function Content() {
   const [navigation, setNavigation] = useState([]);
   const [chaptername, setChaptername] = useState("");
   const [activeCrossReference, setActiveCrossReference] = useState({});
+  const [expandedReferences, setExpandedReferences] = useState({});
   const [bibleData, setBibleData] = useState(null);
   const [titlesData, setTitlesData] = useState(null);
   const [headingsData, setHeadingsData] = useState(null);
@@ -77,7 +40,7 @@ function Content() {
   const itemsRef = useRef([]);
   const itemsRef2 = useRef([]);
   const itemsRef3 = useRef([]);
-  const highlightedElementsRef = useRef({ verse: null, button: null, timer: null }); 
+  const highlightedElementsRef = useRef({ verse: null, button: null, timer: null });
 
 
   // --- INPUT VALIDATION ---
@@ -85,8 +48,8 @@ function Content() {
   else if (parseInt(params.book) > 66) { navigate("/66/1"); }
   else if (parseInt(params.book) < 1) { navigate("/1/1"); }
   else if ((isNaN(parseInt(params.chapter)) || parseInt(params.chapter) <= 0 || !params.chapter) && params.chapter !== 'info') {
-    navigate(`/ ${ params.book }/1`);
-}
+    navigate(`/ ${params.book}/1`);
+  }
 
   const handleCrossReferenceClick = (crossRefData, verseIndex) => {
     setActiveCrossReference(prev => {
@@ -116,110 +79,110 @@ function Content() {
     }
   };
 
-const handleMultiVerseSpeak = async (chap, startVerse, endVerse, groupIndex) => {
-  // play verses one after another
-  for (let i = startVerse-1; i < endVerse; i++) {
-    await speakcontent(chap, i, itemsRef, itemsRef2, itemsRef3, groupIndex, true);
-  }
-};
+  const handleMultiVerseSpeak = async (chap, startVerse, endVerse, groupIndex) => {
+    // play verses one after another
+    for (let i = startVerse - 1; i < endVerse; i++) {
+      await speakcontent(chap, i, itemsRef, itemsRef2, itemsRef3, groupIndex, true);
+    }
+  };
 
 
 
-// --- ASYNC HELPERS (Corrected) ---
-const getHeadings = async () => {
-  if (siteConfig().headings.hasOwnProperty(params.book)) {
-    const cached = await getCacheData('cache', siteConfig().headingurl);
-    if (cached) return cached[params.book];
-    try {
-      const response = await axios.get(siteConfig().headingurl);
-      addDataIntoCache('cache', siteConfig().headingurl, response.data);
-      return response.data[params.book];
-    } catch (error) { console.error("Failed to fetch headings:", error); return null; }
-  }
-  return null;
-};
+  // --- ASYNC HELPERS (Corrected) ---
+  const getHeadings = async () => {
+    if (siteConfig().headings.hasOwnProperty(params.book)) {
+      const cached = await getCacheData('cache', siteConfig().headingurl);
+      if (cached) return cached[params.book];
+      try {
+        const response = await axios.get(siteConfig().headingurl);
+        addDataIntoCache('cache', siteConfig().headingurl, response.data);
+        return response.data[params.book];
+      } catch (error) { console.error("Failed to fetch headings:", error); return null; }
+    }
+    return null;
+  };
 
-const getCrossRefs = async () => {
-  if (areReferencesEnabled() && siteConfig().cross_reference_path) {
-    const url = `${siteConfig().cross_reference_path}${params.book}.json`;
+  const getCrossRefs = async () => {
+    if (areReferencesEnabled() && siteConfig().cross_reference_path) {
+      const url = `${siteConfig().cross_reference_path}${params.book}.json`;
+      const cached = await getCacheData('cache', url);
+      if (cached) return cached;
+      try {
+        const response = await axios.get(url);
+        addDataIntoCache('cache', url, response.data);
+        return response.data;
+      } catch (error) { return null; }
+    }
+    return null;
+  };
+
+  const getIntroInfos = async () => {
+    const url = siteConfig().intro_url;
     const cached = await getCacheData('cache', url);
     if (cached) return cached;
     try {
       const response = await axios.get(url);
       addDataIntoCache('cache', url, response.data);
       return response.data;
-    } catch (error) { return null; }
-  }
-  return null;
-};
-
-const getIntroInfos = async () => {
-  const url = siteConfig().intro_url;
-  const cached = await getCacheData('cache', url);
-  if (cached) return cached;
-  try {
-    const response = await axios.get(url);
-    addDataIntoCache('cache', url, response.data);
-    return response.data;
-  } catch (error) { console.error("Intro Infos fetch failed:", error); return null; }
-};
-
-const getAllTitles = async () => {
-  const url = siteConfig().titleurl;
-  const cached = await getCacheData('cache', url);
-  if (cached) return cached;
-  try {
-    const response = await axios.get(url);
-    addDataIntoCache('cache', url, response.data);
-    return response.data;
-  } catch (error) { console.error("Titles fetch failed:", error); return null; }
-};
-
-// --- DATA FETCHING EFFECT ---
-useEffect(() => {
-  window.speechSynthesis.cancel();
-  setCards([<div className="spinner-grow text-center" key="loading" role="status"><span className="visually-hidden">Loading...</span></div>]);
-
-  // Reset all state on navigation
-  setActiveCrossReference({});
-  setBibleData(null);
-  setTitlesData(null);
-  setHeadingsData(null);
-  setCrossRefData(null);
-  setIntroData(null);
-  itemsRef.current = [];
-  itemsRef2.current = [];
-  itemsRef3.current = [];
-
-  const fetchData = async () => {
-    try {
-      const [titles, bible, headings, crossRefs, intros] = await Promise.all([
-        getAllTitles(),
-        getCacheData('cache', getBible()).then(cached => cached || axios.get(getBible()).then(res => res.data)),
-        getHeadings(),
-        getCrossRefs(),
-        getIntroInfos()
-      ]);
-
-      if (titles) {
-        titlenav(titles);
-        setTitlesData(titles);
-      }
-      if (bible) {
-        addDataIntoCache('cache', getBible(), bible);
-        setBibleData(bible);
-      }
-      setHeadingsData(headings);
-      setCrossRefData(crossRefs);
-      setIntroData(intros);
-
-    } catch (error) {
-      console.error("Error fetching page data:", error);
-    }
+    } catch (error) { console.error("Intro Infos fetch failed:", error); return null; }
   };
 
-  fetchData();
-}, [location]);
+  const getAllTitles = async () => {
+    const url = siteConfig().titleurl;
+    const cached = await getCacheData('cache', url);
+    if (cached) return cached;
+    try {
+      const response = await axios.get(url);
+      addDataIntoCache('cache', url, response.data);
+      return response.data;
+    } catch (error) { console.error("Titles fetch failed:", error); return null; }
+  };
+
+  // --- DATA FETCHING EFFECT ---
+  useEffect(() => {
+    window.speechSynthesis.cancel();
+    setCards([<div className="spinner-grow text-center" key="loading" role="status"><span className="visually-hidden">Loading...</span></div>]);
+
+    // Reset all state on navigation
+    setActiveCrossReference({});
+    setBibleData(null);
+    setTitlesData(null);
+    setHeadingsData(null);
+    setCrossRefData(null);
+    setIntroData(null);
+    itemsRef.current = [];
+    itemsRef2.current = [];
+    itemsRef3.current = [];
+
+    const fetchData = async () => {
+      try {
+        const [titles, bible, headings, crossRefs, intros] = await Promise.all([
+          getAllTitles(),
+          getCacheData('cache', getBible()).then(cached => cached || axios.get(getBible()).then(res => res.data)),
+          getHeadings(),
+          getCrossRefs(),
+          getIntroInfos()
+        ]);
+
+        if (titles) {
+          titlenav(titles);
+          setTitlesData(titles);
+        }
+        if (bible) {
+          addDataIntoCache('cache', getBible(), bible);
+          setBibleData(bible);
+        }
+        setHeadingsData(headings);
+        setCrossRefData(crossRefs);
+        setIntroData(intros);
+
+      } catch (error) {
+        console.error("Error fetching page data:", error);
+      }
+    };
+
+    fetchData();
+  }, [location]);
 
   // --- UI RENDERING EFFECT ---
   useEffect(() => {
@@ -239,7 +202,7 @@ useEffect(() => {
       let infoContent = [];
       const currentBookInfo = titlesData.find(t => t.n == params.book);
       const currentBookIntro = introData?.find(i => i.n == params.book);
-      
+
       if (currentBookInfo) {
         infoContent.push(
           <div key='titlesinfo'>
@@ -255,7 +218,7 @@ useEffect(() => {
           </div>
         );
       }
-      
+
       if (currentBookIntro) {
         infoContent.push(
           <div key='introinfos'>
@@ -271,7 +234,7 @@ useEffect(() => {
       }
       setCards(infoContent);
 
-    // --- RENDER CHAPTER CONTENT (VERSES) ---
+      // --- RENDER CHAPTER CONTENT (VERSES) ---
     } else if (params.chapter !== 'info') {
       const finalContent = [];
       const currentChapterVerses = bibleData.filter(obj => Number(obj.b) == params.book && Number(obj.c) == params.chapter);
@@ -331,10 +294,10 @@ useEffect(() => {
 
           // Skip the loop ahead past the verses we just grouped
           i += versesInRange.length - 1;
-        
+
         } else {
           // --- RENDER A SINGLE VERSE CARD (Original logic) ---
-          
+
           // Check for and render a heading if it exists for this verse
           const headingInfo = headingsData?.find(h => h.c == params.chapter && h.v == verseData.v);
           if (headingInfo && (!getLanguage() || getLanguage() == 'Malayalam')) {
@@ -364,41 +327,61 @@ useEffect(() => {
                       <span className="fw-bold"><Link className={`text-decoration-none words-text fs-${currentFontSize}`} to={`/${params.book}/${params.chapter}/${verseData.v}`}>{verseData.v}.</Link></span> {verseData.t}
                     </div>
                     <div className={`words-text-player ${currentCompact ? 'd-none' : ''} col-auto text-right ml-auto my-auto`}>
-                        {(() => {
-                          let td = [];
-                          if (('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) && navigator.onLine) {
-                            td.push(
-                              <div key="speak-btn" style={{ "position": "relative", "marginRight": "-35px" }} className="arrowbutton card rounded-circle">
-                                <a ref={el => itemsRef2.current[i] = el} onClick={() => speakcontent(chap, i, itemsRef, itemsRef2, itemsRef3,i, false)} className="btn btn-small rounded-circle fw-bold arrowbutton">
-                                  <img ref={el => itemsRef.current[i] = el} src="/assets/images/play.svg" width="16px" height="16px" alt="play" />
-                                </a>
-                              </div>
-                            );
-                          }
+                      {(() => {
+                        let td = [];
+                        if (('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) && navigator.onLine) {
                           td.push(
-                            <div key="copy-btn" style={{ "position": "relative", "marginRight": "-35px" }} className="arrowbutton card rounded-circle">
-                              <a ref={el => itemsRef2.current[`c-${i}`] = el} onClick={() => copyToClipBoard(`${verseData.t} (${chaptername} ${params.chapter}:${verseData.v})`, i, itemsRef, itemsRef2)} className="btn btn-small rounded-circle fw-bold arrowbutton">
-                                <img ref={el => itemsRef.current[`c-${i}`] = el} src="/assets/images/clipboard.svg" width="16px" height="16px" alt="copy" />                            </a>
+                            <div key="speak-btn" style={{ "position": "relative", "marginRight": "-35px" }} className="arrowbutton card rounded-circle">
+                              <a ref={el => itemsRef2.current[i] = el} onClick={() => speakcontent(chap, i, itemsRef, itemsRef2, itemsRef3, i, false)} className="btn btn-small rounded-circle fw-bold arrowbutton">
+                                <img ref={el => itemsRef.current[i] = el} src="/assets/images/play.svg" width="16px" height="16px" alt="play" />
+                              </a>
                             </div>
                           );
-                          return td;
-                        })()}
+                        }
+                        td.push(
+                          <div key="copy-btn" style={{ "position": "relative", "marginRight": "-35px" }} className="arrowbutton card rounded-circle">
+                            <a ref={el => itemsRef2.current[`c-${i}`] = el} onClick={() => copyToClipBoard(`${verseData.t} (${chaptername} ${params.chapter}:${verseData.v})`, i, itemsRef, itemsRef2)} className="btn btn-small rounded-circle fw-bold arrowbutton">
+                              <img ref={el => itemsRef.current[`c-${i}`] = el} src="/assets/images/clipboard.svg" width="16px" height="16px" alt="copy" />                            </a>
+                          </div>
+                        );
+                        return td;
+                      })()}
                     </div>
                   </div>
 
                   {areReferencesEnabled() && verseCrossReferences.length > 0 && (
                     <div className="mt-2">
                       <div>
-                        {verseCrossReferences.sort((a, b) => b.lyk - a.lyk).map((cr, idx) => (
-                          <button
-                            key={idx}
-                            onClick={() => handleCrossReferenceClick(cr, i)}
-                            className={`btn btn-sm ${activeCrossReference.verseIndex === i && activeCrossReference.refData === cr ? 'btn-primary' : 'btn-light'} rounded-pill me-2 `}
-                            style={{ padding: '0.1rem 0.4rem', fontSize: '0.75rem', lineHeight: '1.2' }}
-                          >
-                            {cr.to.length > 1 ? `${cr.to[0]}-${cr.to[1].split('/')[2]}` : cr.to[0]}
-                          </button>
-                        ))}
+                        {(() => {
+                          const sortedReferences = [...verseCrossReferences].sort((a, b) => b.lyk - a.lyk);
+
+                          const isExpanded = expandedReferences[i];
+                          const referencesToShow = isExpanded ? sortedReferences : sortedReferences.slice(0, 5);
+
+                          return (
+                            <>
+                              {referencesToShow.sort((a, b) => b.lyk - a.lyk).map((cr, idx) => (
+                                <button
+                                  key={idx}
+                                  onClick={() => handleCrossReferenceClick(cr, i)}
+                                  className={`btn btn-sm ${activeCrossReference.verseIndex === i && activeCrossReference.refData === cr ? 'btn-primary' : 'btn-light'} rounded-pill me-2 mb-1`}
+                                  style={{ padding: '0.1rem 0.4rem', fontSize: '0.75rem', lineHeight: '1.2' }}
+                                >
+                                  {cr.to.length > 1 ? `${cr.to[0]}-${cr.to[1].split('/')[2]}` : cr.to[0]}
+                                </button>
+                              ))}
+                              {verseCrossReferences.length > 5 && (
+                                <button
+                                  onClick={() => setExpandedReferences(prev => ({ ...prev, [i]: !isExpanded }))}
+                                  className="btn btn-sm btn-secondary rounded-pill me-2 mb-1"
+                                  style={{ padding: '0.1rem 0.4rem', fontSize: '0.75rem', lineHeight: '1.2' }}
+                                >
+                                  {isExpanded ? '-' : '+'}
+                                </button>
+                              )}
+                            </>
+                          );
+                        })()}
                       </div>
                       {activeCrossReference.verseIndex === i && (
                         <CrossReferenceVerse
@@ -417,131 +400,131 @@ useEffect(() => {
       }
       setCards(finalContent);
     }
-  }, [bibleData, titlesData, headingsData, crossRefData, introData, activeCrossReference, location]);
+  }, [bibleData, titlesData, headingsData, crossRefData, introData, activeCrossReference, location, expandedReferences]);
 
 
-useEffect(() => {
-  if (highlightedElementsRef.current.timer) {
-    clearTimeout(highlightedElementsRef.current.timer);
-  }
-  if (highlightedElementsRef.current.verse) {
-    highlightedElementsRef.current.verse.style.backgroundColor = '';
-    highlightedElementsRef.current.verse.style.color = '';
-  }
-  if (highlightedElementsRef.current.button) {
-    highlightedElementsRef.current.button.style.backgroundColor = '';
-  }
-  highlightedElementsRef.current = { verse: null, button: null, timer: null };
-
-  const executionTimer = setTimeout(() => {
-    if (params.verse && bibleData) {
-      const [startVerse, endVerse] = parseVerseRange(params.verse);
-      let verseIndex = parseInt(endVerse) - 1;
-      const verseElement = itemsRef3.current[verseIndex] || itemsRef3.current[itemsRef3.current.length - 1];
-
-      if (verseIndex >= 0 && verseElement) {
-        const speakButtonContainer = itemsRef2.current[verseIndex];
-
-        verseElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        verseElement.style.backgroundColor = '#faebd7';
-        verseElement.style.color = '#000';
-
-        if (speakButtonContainer) {
-          speakButtonContainer.style.backgroundColor = '#ffb380';
-        }
-        highlightedElementsRef.current.verse = verseElement;
-        highlightedElementsRef.current.button = speakButtonContainer;
-      }
+  useEffect(() => {
+    if (highlightedElementsRef.current.timer) {
+      clearTimeout(highlightedElementsRef.current.timer);
     }
-    else if (!params.verse && bibleData) {
-      const firstVerseElement = itemsRef3.current[0];
-
-      if (firstVerseElement) {
-        firstVerseElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
+    if (highlightedElementsRef.current.verse) {
+      highlightedElementsRef.current.verse.style.backgroundColor = '';
+      highlightedElementsRef.current.verse.style.color = '';
     }
-  }, 1);
+    if (highlightedElementsRef.current.button) {
+      highlightedElementsRef.current.button.style.backgroundColor = '';
+    }
+    highlightedElementsRef.current = { verse: null, button: null, timer: null };
 
-  return () => clearTimeout(executionTimer);
-}, [bibleData, location]);
+    const executionTimer = setTimeout(() => {
+      if (params.verse && bibleData) {
+        const [startVerse, endVerse] = parseVerseRange(params.verse);
+        let verseIndex = parseInt(endVerse) - 1;
+        const verseElement = itemsRef3.current[verseIndex] || itemsRef3.current[itemsRef3.current.length - 1];
 
-function titlenav(allTitles) {
-  const r = allTitles.filter(obj => obj.n == params.book);
-  if (!r.length) return;
+        if (verseIndex >= 0 && verseElement) {
+          const speakButtonContainer = itemsRef2.current[verseIndex];
 
-  const h_lang = !getLanguage() || getLanguage() === "Malayalam" ? r[0].bm : r[0].be;
-  document.title = params.verse ? `${h_lang} (${params.chapter}:${params.verse}) | ${getTranslation().siteTitle}` : `${h_lang} (${params.chapter}) | ${getTranslation().siteTitle}`;
-  setChaptername(h_lang);
+          verseElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          verseElement.style.backgroundColor = '#faebd7';
+          verseElement.style.color = '#000';
 
-  setNavigation(
-    <div className="row row-2 justify-content-center mt-4">
-      {(() => {
-        let tp = [];
-        if (params.chapter > 1) {
-          tp.push(<div key="prev-ch" className="col-auto mr-auto"><Link title={getTranslation().preChapter} to={`/${params.book}/${parseInt(params.chapter) - 1}`}><div className="arrowbutton card rounded-circle btn"><img src="/assets/images/arrow-left.svg" alt="prev" /></div></Link></div>);
+          if (speakButtonContainer) {
+            speakButtonContainer.style.backgroundColor = '#ffb380';
+          }
+          highlightedElementsRef.current.verse = verseElement;
+          highlightedElementsRef.current.button = speakButtonContainer;
         }
-        if (params.book > 1 && params.chapter == 1) {
-          tp.push(<div key="prev-bk" className="col-auto mr-auto"><Link title={getTranslation().preBook} to={`/${parseInt(params.book) - 1}/1`}><div className="arrowbutton card rounded-circle btn"><img src="/assets/images/arrow-left.svg" alt="prev" /></div></Link></div>);
-        }
-        if (params.chapter < r[0].c) {
-          tp.push(<div key="next-ch" className="col-auto"><Link title={getTranslation().nextChapter} to={`/${params.book}/${parseInt(params.chapter) + 1}`}><div className="arrowbutton card rounded-circle btn"><img src="/assets/images/arrow-right.svg" alt="next" /></div></Link></div>);
-        }
-        if (params.book < 66 && params.chapter >= r[0].c) {
-          tp.push(<div key="next-bk" className="col-auto"><Link title={getTranslation().nextBook} to={`/${parseInt(params.book) + 1}/1`}><div className="arrowbutton card rounded-circle btn"><img src="/assets/images/arrow-right.svg" alt="next" /></div></Link></div>);
-        }
-        return tp;
-      })()}
-    </div>
-  );
+      }
+      else if (!params.verse && bibleData) {
+        const firstVerseElement = itemsRef3.current[0];
 
-  setTitle(
-    <div className="text-center mb-2">
-      <div className="d-flex justify-content-center align-items-center">
-        {params.book > 1 && <div key="t-prev-bk"><Link title={getTranslation().preBook} to={`/${parseInt(params.book) - 1}/1`}><div className="arrowbutton card rounded-circle btn btn-sm"><img src="/assets/images/arrow-left.svg" alt="prev" /></div></Link></div>}
-        <h3 className="mx-3"><span className="text-primary fw-bold"><Link className="text-decoration-none" to={`/${r[0].n}/1`}>{h_lang}</Link></span> {params.chapter && !isNaN(params.chapter) ? ` - ${getTranslation().chapter} ${params.chapter}` : ''}</h3>
-        {params.book < 66 && <div key="t-next-bk"><Link title={getTranslation().nextBook} to={`/${parseInt(params.book) + 1}/1`}><div className="arrowbutton card rounded-circle btn btn-sm"><img src="/assets/images/arrow-right.svg" alt="next" /></div></Link></div>}
-      </div>
-      <div className="row row-cols-auto mt-3 justify-content-center">
+        if (firstVerseElement) {
+          firstVerseElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }
+    }, 1);
+
+    return () => clearTimeout(executionTimer);
+  }, [bibleData, location]);
+
+  function titlenav(allTitles) {
+    const r = allTitles.filter(obj => obj.n == params.book);
+    if (!r.length) return;
+
+    const h_lang = !getLanguage() || getLanguage() === "Malayalam" ? r[0].bm : r[0].be;
+    document.title = params.verse ? `${h_lang} (${params.chapter}:${params.verse}) | ${getTranslation().siteTitle}` : `${h_lang} (${params.chapter}) | ${getTranslation().siteTitle}`;
+    setChaptername(h_lang);
+
+    setNavigation(
+      <div className="row row-2 justify-content-center mt-4">
         {(() => {
-          let td = [];
-          if (!getLanguage() || getLanguage() == "Malayalam") {
-            td.push(<div key='info-link' className={`numberbox`}><Link className="link-dark small text-decoration-none" to={`/${params.book}/info`}><div className={`col numberbox ${params.chapter === 'info' ? 'bg-info' : ''}`}>✞</div></Link></div>);
+          let tp = [];
+          if (params.chapter > 1) {
+            tp.push(<div key="prev-ch" className="col-auto mr-auto"><Link title={getTranslation().preChapter} to={`/${params.book}/${parseInt(params.chapter) - 1}`}><div className="arrowbutton card rounded-circle btn"><img src="/assets/images/arrow-left.svg" alt="prev" /></div></Link></div>);
           }
-          for (let i = 1; i <= r[0].c; i++) {
-            td.push(
-              <div key={i} className="numberbox">
-                <Link className="link-dark small text-decoration-none" to={`/${params.book}/${i}`}>
-                  <div className="col numberbox" style={i == params.chapter ? { backgroundColor: "#8D9EFF" } : {}}>{i}</div>
-                </Link>
-              </div>
-            );
+          if (params.book > 1 && params.chapter == 1) {
+            tp.push(<div key="prev-bk" className="col-auto mr-auto"><Link title={getTranslation().preBook} to={`/${parseInt(params.book) - 1}/1`}><div className="arrowbutton card rounded-circle btn"><img src="/assets/images/arrow-left.svg" alt="prev" /></div></Link></div>);
           }
-          return td;
+          if (params.chapter < r[0].c) {
+            tp.push(<div key="next-ch" className="col-auto"><Link title={getTranslation().nextChapter} to={`/${params.book}/${parseInt(params.chapter) + 1}`}><div className="arrowbutton card rounded-circle btn"><img src="/assets/images/arrow-right.svg" alt="next" /></div></Link></div>);
+          }
+          if (params.book < 66 && params.chapter >= r[0].c) {
+            tp.push(<div key="next-bk" className="col-auto"><Link title={getTranslation().nextBook} to={`/${parseInt(params.book) + 1}/1`}><div className="arrowbutton card rounded-circle btn"><img src="/assets/images/arrow-right.svg" alt="next" /></div></Link></div>);
+          }
+          return tp;
         })()}
       </div>
-    </div>
-  );
-}
+    );
 
-return (
-  <section className="py-2 mb-5">
-    <div className="container-fluid">
-      <div className="row">
-        <div className="col-lg-12">
-          <section id="scroll-target">
-            <div className="container my-2">
-              <div className="row row-cols-1 justify-content-center">
-                {title}
-                {cards}
-                {navigation}
-              </div>
-            </div>
-          </section>
+    setTitle(
+      <div className="text-center mb-2">
+        <div className="d-flex justify-content-center align-items-center">
+          {params.book > 1 && <div key="t-prev-bk"><Link title={getTranslation().preBook} to={`/${parseInt(params.book) - 1}/1`}><div className="arrowbutton card rounded-circle btn btn-sm"><img src="/assets/images/arrow-left.svg" alt="prev" /></div></Link></div>}
+          <h3 className="mx-3"><span className="text-primary fw-bold"><Link className="text-decoration-none" to={`/${r[0].n}/1`}>{h_lang}</Link></span> {params.chapter && !isNaN(params.chapter) ? ` - ${getTranslation().chapter} ${params.chapter}` : ''}</h3>
+          {params.book < 66 && <div key="t-next-bk"><Link title={getTranslation().nextBook} to={`/${parseInt(params.book) + 1}/1`}><div className="arrowbutton card rounded-circle btn btn-sm"><img src="/assets/images/arrow-right.svg" alt="next" /></div></Link></div>}
+        </div>
+        <div className="row row-cols-auto mt-3 justify-content-center">
+          {(() => {
+            let td = [];
+            if (!getLanguage() || getLanguage() == "Malayalam") {
+              td.push(<div key='info-link' className={`numberbox`}><Link className="link-dark small text-decoration-none" to={`/${params.book}/info`}><div className={`col numberbox ${params.chapter === 'info' ? 'bg-info' : ''}`}>✞</div></Link></div>);
+            }
+            for (let i = 1; i <= r[0].c; i++) {
+              td.push(
+                <div key={i} className="numberbox">
+                  <Link className="link-dark small text-decoration-none" to={`/${params.book}/${i}`}>
+                    <div className="col numberbox" style={i == params.chapter ? { backgroundColor: "#8D9EFF" } : {}}>{i}</div>
+                  </Link>
+                </div>
+              );
+            }
+            return td;
+          })()}
         </div>
       </div>
-    </div>
-  </section>
-);
+    );
+  }
+
+  return (
+    <section className="py-2 mb-5">
+      <div className="container-fluid">
+        <div className="row">
+          <div className="col-lg-12">
+            <section id="scroll-target">
+              <div className="container my-2">
+                <div className="row row-cols-1 justify-content-center">
+                  {title}
+                  {cards}
+                  {navigation}
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
 }
 
 export default Content;
