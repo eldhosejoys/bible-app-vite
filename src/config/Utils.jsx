@@ -83,128 +83,103 @@ export const getCacheData = async (cacheName, url) => {
   return await cachedResponse.json();
 }
 
-export const speakcontent = async (chap, index, itemsRef, itemsRef2, itemsRef3) => {
-
+export const speakcontent = async (chap, verse, itemsRef, itemsRef2, itemsRef3, index, grouped = false) => {
   window.speechSynthesis.cancel();
+  console.log("Speaking verse " + verse + " in index " + index);
 
-  if (itemsRef.current[index].src.indexOf("stop.svg") != -1) { // contains play
-    itemsRef.current[index].src = '/assets/images/play.svg';
-    itemsRef2.current[index].style.backgroundColor = '';
-    itemsRef3.current[index].style.backgroundColor = '';
-    itemsRef3.current[index].style.color = '';
+  const data = JSON.parse(chap);
+  const sentences = data.slice(verse).map(item => item.t);
+
+  const indexFinder = (i) => {
+    let idx = i;
+    while (idx < itemsRef.current.length && !itemsRef.current[idx]) idx++;
+    return idx;
+  };
+
+  const setStyles = (i, { src = '', bg2 = '', bg3 = '', color = '' } = {}) => {
+    const idx = indexFinder(i);
+    if (!itemsRef.current[idx]) return;
+    itemsRef.current[idx].src = src;
+    itemsRef2.current[idx].style.backgroundColor = bg2;
+    itemsRef3.current[idx].style.backgroundColor = bg3;
+    itemsRef3.current[idx].style.color = color;
+    if (src.includes('stop')) itemsRef2.current[idx].scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
+
+  const resetAll = () => {
+    for (let i = 0; i < itemsRef3.current.length; i++) {
+      setStyles(i, { src: '/assets/images/play.svg' });
+    }
+  };
+
+  // toggle stop
+  if (itemsRef.current[index]?.src.includes("stop.svg")) {
+    setStyles(index, { src: '/assets/images/play.svg' });
     return;
   }
 
-  for (var i = 1; i < itemsRef3.current.length; i++) {
-    if (itemsRef.current[i]) {
-      itemsRef.current[i].src = '/assets/images/play.svg';
-      itemsRef2.current[i].style.backgroundColor = '';
-      itemsRef3.current[i].style.backgroundColor = '';
-      itemsRef3.current[i].style.color = '';
+  resetAll();
 
-    }
+  const playSentence = (sentence, i) => 
+    new Promise((resolve, reject) => {
+      const utter = new SpeechSynthesisUtterance(sentence);
+      utter.lang = getLanguageCode();
+
+      const targetIndex = grouped ? Math.max(index, verse + i) : verse + i;
+
+      utter.onstart = () => setStyles(targetIndex, { src: '/assets/images/stop.svg', bg2: '#ffb380', bg3: '#faebd7', color: '#000' });
+      utter.onerror = (e) => { window.speechSynthesis.cancel(); setStyles(targetIndex, { src: '/assets/images/play.svg' }); reject(e); };
+      utter.onend = () => { setStyles(targetIndex, { src: '/assets/images/play.svg' }); resolve(); };
+
+      window.speechSynthesis.speak(utter);
+    });
+
+  for (let i = 0; i < sentences.length; i++) {
+    await playSentence(sentences[i], i);
   }
-
-  let sentences = [];
-  for (var i = index; i < JSON.parse(chap).length; i++) {
-    sentences.push(JSON.parse(chap)[i].t);
-  }
-
-  for (var i = 0; i < sentences.length; i++) {
-    getNextAudio(sentences[i], i);
-  }
-
-  async function getNextAudio(sentence, i) {
-    let audio = new SpeechSynthesisUtterance(sentence);
-    audio.lang = getLanguageCode();
-    window.speechSynthesis.speak(audio);
-    let mestext = '';
-    audio.onstart = (event) => {
-      itemsRef.current[index + sentences.indexOf(event.utterance.text)].src = '/assets/images/stop.svg';
-      itemsRef2.current[index + sentences.indexOf(event.utterance.text)].style.backgroundColor = '#ffb380';
-      itemsRef3.current[index + sentences.indexOf(event.utterance.text)].style.backgroundColor = '#faebd7';
-      itemsRef3.current[index + sentences.indexOf(event.utterance.text)].style.color = '#000';
-
-      itemsRef2.current[index + sentences.indexOf(event.utterance.text)].scrollIntoView({
-        behavior: 'smooth',
-        block: 'center',
-        inline: 'center'
-      });
-      mestext = event.utterance.text;
-    }
-
-    audio.onerror = (event) => {
-      window.speechSynthesis.cancel();
-      for (var i = 1; i < itemsRef3.current.length; i++) {
-        if (itemsRef.current[i]) {
-          itemsRef.current[i].src = '/assets/images/play.svg';
-          itemsRef2.current[i].style.backgroundColor = '';
-          itemsRef3.current[i].style.backgroundColor = '';
-          itemsRef3.current[i].style.color = '';
-        }
-      }
-      return;
-    }
-    audio.onend = (event) => {
-      itemsRef.current[index + sentences.indexOf(mestext)].src = '/assets/images/play.svg';
-      itemsRef2.current[index + sentences.indexOf(mestext)].style.backgroundColor = '';
-      itemsRef3.current[index + sentences.indexOf(mestext)].style.backgroundColor = '';
-      itemsRef3.current[index + sentences.indexOf(mestext)].style.color = '';
-    }
-
-    // return new Promise(resolve => {
-    //   audio.onend = resolve;
-
-    // });
-  }
-
-}
+};
 
 
 export const speaksearch = async (chap, index, itemsRef, itemsRef2, itemsRef3) => {
   window.speechSynthesis.cancel();
-  if (itemsRef.current[index].src.indexOf("stop.svg") != -1) { // contains play
-    itemsRef.current[index].src = '/assets/images/play.svg';
-    itemsRef2.current[index].style.backgroundColor = '';
-    itemsRef3.current[index].style.backgroundColor = '';
-    itemsRef3.current[index].style.color = '';
 
+  // helper functions
+  const resetStyles = (i) => {
+    itemsRef.current[i].src = '/assets/images/play.svg';
+    itemsRef2.current[i].style.backgroundColor = '';
+    itemsRef3.current[i].style.backgroundColor = '';
+    itemsRef3.current[i].style.color = '';
+  };
+
+  const highlight = (i) => {
+    itemsRef.current[i].src = '/assets/images/stop.svg';
+    itemsRef2.current[i].style.backgroundColor = '#ffb380';
+    itemsRef3.current[i].style.backgroundColor = '#faebd7';
+    itemsRef3.current[i].style.color = '#000';
+    itemsRef2.current[i].scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
+
+  // toggle stop
+  if (itemsRef.current[index].src.includes("stop.svg")) {
+    resetStyles(index);
     return;
   }
 
-  let sentences = [];
-  sentences.push(chap);
-  getNextAudio(sentences[0], 0);
+  // play single sentence
+  const sentence = chap;
+  const utter = new SpeechSynthesisUtterance(sentence);
+  utter.lang = getLanguageCode();
 
-  async function getNextAudio(sentence, i) {
+  utter.onstart = () => highlight(index);
+  utter.onend = () => resetStyles(index);
+  utter.onerror = () => {
+    window.speechSynthesis.cancel();
+    resetStyles(index);
+  };
 
-    let audio = new SpeechSynthesisUtterance(sentence);
-    audio.lang = getLanguageCode();
-    window.speechSynthesis.speak(audio);
-    let mestext = '';
-    audio.onstart = (event) => {
-      itemsRef.current[index + sentences.indexOf(event.utterance.text)].src = '/assets/images/stop.svg';
-      itemsRef2.current[index + sentences.indexOf(event.utterance.text)].style.backgroundColor = '#ffb380';
-      itemsRef3.current[index + sentences.indexOf(event.utterance.text)].style.backgroundColor = '#faebd7';
-      itemsRef3.current[index + sentences.indexOf(event.utterance.text)].style.color = '#000';
+  window.speechSynthesis.speak(utter);
+};
 
-      itemsRef2.current[index + sentences.indexOf(event.utterance.text)].scrollIntoView({
-        behavior: 'smooth',
-        block: 'center',
-        inline: 'center'
-      });
-      mestext = event.utterance.text;
-    }
-    audio.onend = (event) => {
-      itemsRef.current[index + sentences.indexOf(mestext)].src = '/assets/images/play.svg';
-      itemsRef2.current[index + sentences.indexOf(mestext)].style.backgroundColor = '';
-      itemsRef3.current[index + sentences.indexOf(mestext)].style.backgroundColor = '';
-      itemsRef3.current[index + sentences.indexOf(mestext)].style.color = '';
-
-    }
-  }
-
-}
 
 export const handleFontSize = async (value) => {
   localStorage.setItem('fontSize', 7 - value);

@@ -49,7 +49,7 @@ function Topdown() {
 
   return (
     <>
-    <div className="btn-group floating-button opacity-75" role="group">
+    <div className="btn-group floating-button opacity-75" role="group" style={{zIndex: 1000, position: 'fixed', bottom: '20px', right: '20px'}}>
        {isFloatingButtonVisible1 && (<button className={`btn btn-sm border-2 ${ isFloatingButtonVisible2 ? 'rounded-end rounded-pill' : 'rounded-pill'} ${localStorage.getItem('theme') == 'dark' ? 'btn-light' : 'btn-dark'}`} onClick={handleButtonTopClick}>  ↑  </button>)} 
        {isFloatingButtonVisible2 && ( <button className={`btn btn-sm btn-secondary ${ isFloatingButtonVisible1 ? 'rounded-start rounded-pill' : 'rounded-pill'}`} onClick={handleButtonDownClick}> <div> ↓ </div>   </button>)}
     </div>
