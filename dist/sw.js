@@ -4,6 +4,7 @@ let urlsToCache = [
     "/",
     "/manifest.json",
     "/favicon.ico",
+    "/assets/json/intro.json",
     "/assets/json/title.json",
     "/assets/json/bible.json",
     "/assets/json/eng-bible.json",
