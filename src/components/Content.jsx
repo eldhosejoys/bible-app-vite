@@ -184,6 +184,51 @@ function Content() {
     fetchData();
   }, [location]);
 
+  // --- REUSABLE CROSS-REFERENCE RENDERER ---
+  const renderCrossReferences = (references, verseIndex) => {
+    if (!areReferencesEnabled() || !references || references.length === 0) {
+      return null;
+    }
+
+    const sortedReferences = [...references].sort((a, b) => b.lyk - a.lyk);
+    const isExpanded = expandedReferences[verseIndex];
+    const referencesToShow = isExpanded ? sortedReferences : sortedReferences.slice(0, 5);
+
+    return (
+      <div className="mt-2">
+        <div>
+          {referencesToShow.map((cr, idx) => (
+            <button
+              key={idx}
+              onClick={() => handleCrossReferenceClick(cr, verseIndex)}
+              className={`btn btn-sm ${activeCrossReference.verseIndex === verseIndex && activeCrossReference.refData === cr ? 'btn-primary' : 'btn-light'} rounded-pill me-2 mb-1`}
+              style={{ padding: '0.1rem 0.4rem', fontSize: '0.75rem', lineHeight: '1.2' }}
+            >
+              {cr.to.length > 1 ? `${cr.to[0]}-${cr.to[1].split('/')[2]}` : cr.to[0]}
+            </button>
+          ))}
+          {sortedReferences.length > 5 && (
+            <button
+              onClick={() => setExpandedReferences(prev => ({ ...prev, [verseIndex]: !isExpanded }))}
+              className="btn btn-sm btn-secondary rounded-pill me-2 mb-1"
+              style={{ padding: '0.1rem 0.4rem', fontSize: '0.75rem', lineHeight: '1.2' }}
+            >
+              {isExpanded ? '-' : '+'}
+            </button>
+          )}
+        </div>
+        {activeCrossReference.verseIndex === verseIndex && (
+          <CrossReferenceVerse
+            to={activeCrossReference.refData.to}
+            fullBibleData={bibleData}
+            titles={titlesData}
+          />
+        )}
+      </div>
+    );
+  };
+
+
   // --- UI RENDERING EFFECT ---
   useEffect(() => {
     // Return early if essential data isn't loaded yet
@@ -250,6 +295,13 @@ function Content() {
         // Check if the current verse is the start of a multi-verse selection range
         if (verseNum === startVerse && startVerse !== endVerse) {
           const versesInRange = currentChapterVerses.slice(i, i + (endVerse - startVerse + 1));
+          
+          // Collect all cross-references for the verses in this group
+          const groupCrossReferences = crossRefData
+            ? versesInRange.flatMap(verse =>
+              crossRefData.filter(cr => cr.c == params.chapter && cr.v == verse.v)
+            )
+            : [];
 
           finalContent.push(
             <div key={`group-${startVerse}-${endVerse}`} className="col mb-2 pushdata" id={`v-${startVerse}`}>
@@ -287,6 +339,8 @@ function Content() {
                       </div>
                     </div>
                   </div>
+                   {/* Render cross-references for the entire group, using the index of the first verse */}
+                   {renderCrossReferences(groupCrossReferences, i)}
                 </div>
               </div>
             </div>
@@ -349,49 +403,9 @@ function Content() {
                     </div>
                   </div>
 
-                  {areReferencesEnabled() && verseCrossReferences.length > 0 && (
-                    <div className="mt-2">
-                      <div>
-                        {(() => {
-                          const sortedReferences = [...verseCrossReferences].sort((a, b) => b.lyk - a.lyk);
-
-                          const isExpanded = expandedReferences[i];
-                          const referencesToShow = isExpanded ? sortedReferences : sortedReferences.slice(0, 5);
-
-                          return (
-                            <>
-                              {referencesToShow.sort((a, b) => b.lyk - a.lyk).map((cr, idx) => (
-                                <button
-                                  key={idx}
-                                  onClick={() => handleCrossReferenceClick(cr, i)}
-                                  className={`btn btn-sm ${activeCrossReference.verseIndex === i && activeCrossReference.refData === cr ? 'btn-primary' : 'btn-light'} rounded-pill me-2 mb-1`}
-                                  style={{ padding: '0.1rem 0.4rem', fontSize: '0.75rem', lineHeight: '1.2' }}
-                                >
-                                  {cr.to.length > 1 ? `${cr.to[0]}-${cr.to[1].split('/')[2]}` : cr.to[0]}
-                                </button>
-                              ))}
-                              {verseCrossReferences.length > 5 && (
-                                <button
-                                  onClick={() => setExpandedReferences(prev => ({ ...prev, [i]: !isExpanded }))}
-                                  className="btn btn-sm btn-secondary rounded-pill me-2 mb-1"
-                                  style={{ padding: '0.1rem 0.4rem', fontSize: '0.75rem', lineHeight: '1.2' }}
-                                >
-                                  {isExpanded ? '-' : '+'}
-                                </button>
-                              )}
-                            </>
-                          );
-                        })()}
-                      </div>
-                      {activeCrossReference.verseIndex === i && (
-                        <CrossReferenceVerse
-                          to={activeCrossReference.refData.to}
-                          fullBibleData={bibleData}
-                          titles={titlesData}
-                        />
-                      )}
-                    </div>
-                  )}
+                  {/* Call the reusable function to render cross-references */}
+                  {renderCrossReferences(verseCrossReferences, i)}
+                  
                 </div>
               </div>
             </div>
