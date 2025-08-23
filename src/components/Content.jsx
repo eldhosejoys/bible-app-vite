@@ -35,7 +35,7 @@ function CrossReferenceVerse({ to, fullBibleData, titles }) {
       : `${bookName} ${startChapter}:${startVerse} - ${endChapter}:${endVerse}`;
 
   return (
-    <div className="p-2 mt-2 border rounded" style={{ color:'#000', backgroundColor: '#faebd7' }}>
+    <div className="p-2 mt-2 border rounded" style={{ color: '#000', backgroundColor: '#faebd7' }}>
       <p className="fw-bold mb-1"><Link to={`/${startRef}`} className="text-decoration-none text-danger" title={referenceTitle}>{referenceTitle}</Link></p>
       {referencedVerses.map(verse => (
         <span key={verse.v}><strong className="me-1">{verse.v}</strong>{verse.t}{' '}</span>
@@ -64,6 +64,8 @@ function Content() {
   const itemsRef = useRef([]);
   const itemsRef2 = useRef([]);
   const itemsRef3 = useRef([]);
+  const highlightedElementsRef = useRef({ verse: null, button: null, timer: null });
+
 
   // --- INPUT VALIDATION ---
   if (isNaN(parseInt(params.book))) { navigate("/1/1"); }
@@ -100,7 +102,7 @@ function Content() {
   };
 
   const getCrossRefs = async () => {
-    if (siteConfig().cross_reference_path) {
+    if (areReferencesEnabled() && siteConfig().cross_reference_path) {
       const url = `${siteConfig().cross_reference_path}${params.book}.json`;
       const cached = await getCacheData('cache', url);
       if (cached) return cached;
@@ -187,7 +189,6 @@ function Content() {
       return;
     }
 
-    const showRefs = areReferencesEnabled();
     const currentFontSize = localStorage.getItem('fontSize');
     const currentCompact = Boolean(localStorage.getItem('compact'));
     const theme = localStorage.getItem('theme');
@@ -283,7 +284,7 @@ function Content() {
                   </div>
                 </div>
 
-                {showRefs && verseCrossReferences.length > 0 && (
+                {areReferencesEnabled() && verseCrossReferences.length > 0 && (
                   <div className="mt-2">
                     <div>
                       {verseCrossReferences.sort((a, b) => b.lyk - a.lyk).map((cr, i) => (
@@ -319,39 +320,50 @@ function Content() {
     }
   }, [bibleData, titlesData, headingsData, crossRefData, introData, activeCrossReference, location]);
 
-  // --- FIX: DEDICATED EFFECT FOR HIGHLIGHTING ---
-  // This hook runs AFTER the cards have been rendered to the screen.
+
   useEffect(() => {
-    if (params.verse) {
-      const verseIndex = parseInt(params.verse) - 1;
-
-      // Check if the DOM element is available in our ref array
-      if (verseIndex >= 0 && itemsRef3.current[verseIndex]) {
-        const verseElement = itemsRef3.current[verseIndex];
-        const speakButtonContainer = itemsRef2.current[verseIndex];
-
-        // Scroll to the verse and apply highlighting
-        verseElement.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
-        verseElement.style.backgroundColor = '#faebd7';
-        verseElement.style.color = '#000';
-
-        if (speakButtonContainer) {
-          speakButtonContainer.style.backgroundColor = '#ffb380';
-        }
-
-        // Set a timeout to remove the highlight after a delay
-        setTimeout(() => {
-          if (verseElement) { // Add safety check in case component unmounts
-            verseElement.style.backgroundColor = '';
-            verseElement.style.color = '';
-          }
-          if (speakButtonContainer) {
-            speakButtonContainer.style.backgroundColor = '';
-          }
-        }, 2000); // Highlight for 2 seconds
-      }
+    if (highlightedElementsRef.current.timer) {
+      clearTimeout(highlightedElementsRef.current.timer);
     }
-  }, [navigation]);
+    if (highlightedElementsRef.current.verse) {
+      highlightedElementsRef.current.verse.style.backgroundColor = '';
+      highlightedElementsRef.current.verse.style.color = '';
+    }
+    if (highlightedElementsRef.current.button) {
+      highlightedElementsRef.current.button.style.backgroundColor = '';
+    }
+    highlightedElementsRef.current = { verse: null, button: null, timer: null };
+
+    const executionTimer = setTimeout(() => {
+      if (params.verse && bibleData) {
+        const verseIndex = parseInt(params.verse) - 1;
+        const verseElement = itemsRef3.current[verseIndex];
+
+        if (verseIndex >= 0 && verseElement) {
+          const speakButtonContainer = itemsRef2.current[verseIndex];
+
+          verseElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          verseElement.style.backgroundColor = '#faebd7';
+          verseElement.style.color = '#000';
+
+          if (speakButtonContainer) {
+            speakButtonContainer.style.backgroundColor = '#ffb380';
+          }
+          highlightedElementsRef.current.verse = verseElement;
+          highlightedElementsRef.current.button = speakButtonContainer;
+        }
+      }
+      else if (!params.verse && bibleData) {
+        const firstVerseElement = itemsRef3.current[0];
+        
+        if (firstVerseElement) {
+          firstVerseElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }
+    }, 1);
+
+    return () => clearTimeout(executionTimer);
+  }, [bibleData, location]);
 
   function titlenav(allTitles) {
     const r = allTitles.filter(obj => obj.n == params.book);

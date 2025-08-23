@@ -144,7 +144,7 @@ function Search() {
       return <div className="text-center fw-lighter mb-3 text-secondary">No results found</div>;
     }
     if (r_length < rangevalue) {
-      return <div className="text-center fw-lighter mb-3 text-secondary">Search word "{q}" found in {r_length} verses</div>;
+      return <div className="text-center fw-lighter mb-3 text-secondary">Search word found in {r_length} verses</div>;
     }
 
     let range;
@@ -155,7 +155,7 @@ function Search() {
       const end = Math.min(start + rangevalue - 1, r_length);
       range = `${start} to ${end}`;
     }
-    return <div className="text-center fw-lighter mb-3 text-secondary">Showing the {range} of {r_length} verses matching the search word {q ? `"${q}"` : ""}</div>;
+    return <div className="text-center fw-lighter mb-3 text-secondary">Showing the {range} verses of {r_length} with the search word</div>;
   }, [filteredResults.length, pval, rangevalue]);
 
   const onSpeak = useCallback((text, index) => {
@@ -249,18 +249,18 @@ function Search() {
             <section id="scroll-target">
               <div className="container my-2">
                 <div className="row row-cols-1 justify-content-center">
-                   {resultCountMessage}
                   {isLoading ? (
                     <div className="spinner-grow text-center" role="status">
                       <span className="visually-hidden">Loading...</span>
                     </div>
                   ) : (
                     <>
+                      {resultCountMessage}
                       {cards}
                     </>
                   )}
                   <div></div>
-                  {isLoading || navigation}
+                  {navigation}
                 </div>
                 <Topdown />
               </div>
