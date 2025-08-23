@@ -450,11 +450,13 @@ function Content() {
           highlightedElementsRef.current.button = speakButtonContainer;
         }
       }
-      else if (!params.verse && bibleData) {
+      else if (!params.verse && bibleData ) { 
         const firstVerseElement = itemsRef3.current[0];
 
-        if (firstVerseElement) {
+        if (firstVerseElement && params.book == '19') { // for psalms only we need to move to first verse in the chapter
           firstVerseElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else{
+          window.scrollTo({ top: 0, behavior: 'smooth' });
         }
       }
     }, 1);
