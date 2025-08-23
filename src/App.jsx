@@ -23,9 +23,7 @@ function App() {
                         <Route path='/settings' element={<Settings />} />
                         <Route path='/about' element={<About />} />
                         {/* Single flexible route for all book/chapter/verse formats */}
-                        <Route path='/:book/:chapterOrChapterVerse/:verse' element={<VerseRoute />} />
-                        <Route path='/:book/:chapterOrChapterVerse' element={<VerseRoute />} />
-                        <Route path='/:book' element={<VerseRoute />} />
+                        <Route path='/:book/:chapterOrChapterVerse?/:verse?' element={<VerseRoute />} />
                         <Route path='*' element={<Error />} status={404} />
                     </Routes>
                 </main>
