@@ -56,7 +56,8 @@ export default function VerseRoute() {
     return <Content book={bookNum} chapter={chapterNum} />;
   }
   if (bookNum) {
-    return <Content book={bookNum} />;
+    console.log("Rendering book only ",bookNum);
+    return <Content book={bookNum} chapter={1}/>;
   }
   return null;
 }
