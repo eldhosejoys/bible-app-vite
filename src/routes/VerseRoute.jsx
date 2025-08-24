@@ -1,39 +1,40 @@
-import { useParams } from 'react-router-dom';
-import Content from '../components/Content';
+import { useParams } from "react-router-dom";
+import Content from "../components/Content";
+import { bookMap } from "../config/siteConfig";
 
 export default function VerseRoute() {
     const { book, chapterOrChapterVerse, verse } = useParams();
 
-    let chapterNum = null;
-    let verseNum = null;
+    // Match chapter + optional verse (from either ":verse" or "/verse")
+    const match = `${chapterOrChapterVerse || ""}${verse ? "/" + verse : ""}`
+        .match(/^(\d+)(?::(\d+)|\/(\d+))?/);
 
-    if (verse) {
-        // URL: /book/chapter/verse
-        chapterNum = chapterOrChapterVerse;
-        verseNum = verse;
-    } else if (chapterOrChapterVerse) {
-        // URL: /book/chapter or /book/chapter:verse
-        if (chapterOrChapterVerse.includes(':')) {
-            [chapterNum, verseNum] = chapterOrChapterVerse.split(':');
-        } else {
-            chapterNum = chapterOrChapterVerse;
+    // helper to normalize book param
+    function getBookNumber(book) {
+        if (!book) return null;
+        const key = book.trim().toLowerCase();
+        if (!isNaN(key)) {
+            const num = parseInt(key, 10);
+            return num >= 1 && num <= 66 ? num : null;
         }
+        return bookMap[key] || null;
     }
 
-    // Trim whitespace
-    const cleanBook = book?.trim();
-    const cleanChapter = chapterNum?.trim();
-    const cleanVerse = verseNum?.trim();
+    const chapterNum = match?.[1]?.trim();
+    const verseNum = (match?.[2] || match?.[3])?.trim();
+    const bookNum = getBookNumber(book);
 
-    console.log('Parsed Params:', { cleanBook, cleanChapter, cleanVerse });
-    if (cleanBook && cleanChapter && cleanVerse) {
-        return <Content book={cleanBook} chapter={cleanChapter} verse={cleanVerse} />;
-    } else if (cleanBook && cleanChapter) {
-        return <Content book={cleanBook} chapter={cleanChapter} />;
-    } else if (cleanBook) {
-        return <Content book={cleanBook}/>;
-    } else {
-        return null;
+
+    console.log("Parsed Params:", { bookNum, chapterNum, verseNum });
+
+    if (bookNum && chapterNum && verseNum) {
+        return <Content book={bookNum} chapter={chapterNum} verse={verseNum} />;
     }
-
+    if (bookNum && chapterNum) {
+        return <Content book={bookNum} chapter={chapterNum} />;
+    }
+    if (bookNum) {
+        return <Content book={bookNum} />;
+    }
+    return null;
 }
