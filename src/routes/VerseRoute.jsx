@@ -1,9 +1,10 @@
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import Content from "../components/Content";
 import { bookMap } from "../config/siteConfig";
 
 export default function VerseRoute() {
   const { book, chapterOrChapterVerse, verse } = useParams();
+  const navigate = useNavigate();
 
   // helper to normalize book param
   function getBookNumber(book) {
@@ -16,15 +17,15 @@ export default function VerseRoute() {
     return bookMap[key] || null;
   }
 
+  const bookNum = getBookNumber(book);
+
   let chapterNum = null;
   let verseNum = null;
 
   if (verse) {
-    // URL form: /book/chapter/verse
     chapterNum = chapterOrChapterVerse?.trim();
     verseNum = verse?.trim();
   } else if (chapterOrChapterVerse) {
-    // URL form: /book/chapter or /book/chapter:verse
     if (chapterOrChapterVerse.includes(":")) {
       [chapterNum, verseNum] = chapterOrChapterVerse.split(":").map(s => s.trim());
     } else {
@@ -32,10 +33,22 @@ export default function VerseRoute() {
     }
   }
 
-  const bookNum = getBookNumber(book);
+  // --- Navigation conditions ---
+  if (!bookNum) {
+    navigate("/1/1");
+    return null;
+  } else if (bookNum > 66) {
+    navigate("/66/1");
+    return null;
+  } else if (bookNum < 1) {
+    navigate("/1/1");
+    return null;
+  } else if ((!chapterNum || isNaN(parseInt(chapterNum)) || parseInt(chapterNum) <= 0) && chapterNum !== 'info') {
+    navigate(`/${bookNum}/1`);
+    return null;
+  }
 
-  console.log("Parsed Params:", { bookNum, chapterNum, verseNum });
-
+  // --- Render content ---
   if (bookNum && chapterNum && verseNum) {
     return <Content book={bookNum} chapter={chapterNum} verse={verseNum} />;
   }

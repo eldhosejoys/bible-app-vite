@@ -43,14 +43,6 @@ function Content({ book, chapter, verse }) {
   const highlightedElementsRef = useRef({ verse: null, button: null, timer: null });
 
 
-  // --- INPUT VALIDATION ---
-  if (isNaN(parseInt(params.book))) { navigate("/1/1"); }
-  else if (parseInt(params.book) > 66) { navigate("/66/1"); }
-  else if (parseInt(params.book) < 1) { navigate("/1/1"); }
-  else if ((isNaN(parseInt(params.chapter)) || parseInt(params.chapter) <= 0 || !params.chapter) && params.chapter !== 'info') {
-    navigate(`/${params.book}/1`);
-  }
-
   const handleCrossReferenceClick = (crossRefData, verseIndex) => {
     setActiveCrossReference(prev => {
       const isAlreadyActive = prev.verseIndex === verseIndex && prev.refData === crossRefData;

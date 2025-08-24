@@ -5,6 +5,7 @@ import { siteConfig } from "../config/siteConfig";
 import Settings from "../features/Settings";
 import IndexButton from "../features/IndexButton";
 import { getTranslation } from '../config/SiteTranslations';
+import { bookMap } from "../config/siteConfig";
 
 function Header({ value = '' }) {
   const [input, setInput] = useState(value);
@@ -84,27 +85,38 @@ function Header({ value = '' }) {
     setInput(searchParams.get("q") || regInput.current.value);
   }, [searchParams]);
 
-const setDynamicPlaceholder = async () => {
-  const match = location.pathname.match(/^\/\d+\/(\d+)(?:[/:](\d+(?:-\d+)?))?/);
+  const setDynamicPlaceholder = async () => {
+    const match = location.pathname.match(
+      /^\/([a-zA-Z0-9]+)(?:\/(\d+))?(?:[/:](\d+)(?:-(\d+))?)?/
+    );
+    if (!match) return setPlaceholder(getTranslation().searchPlaceHolder);
 
-  // no match → fallback
-  if (!match) return setPlaceholder(getTranslation().searchPlaceHolder);
+    const [, bookPart, chapterNum, verseStart, verseEnd] = match;
 
-  const [ , chapterNum ] = match;
-  const resp = await getCacheData("cache", siteConfig().titleurl);
-  if (!resp) return setPlaceholder(getTranslation().searchPlaceHolder);
+    const resp = await getCacheData("cache", siteConfig().titleurl);
+    if (!resp) return setPlaceholder(getTranslation().searchPlaceHolder);
 
-  const chapterIndex = +chapterNum;
-  if (!chapterIndex || !resp[chapterIndex - 1]) {
-    return setPlaceholder(getTranslation().searchPlaceHolder);
-  }
+    // Determine bookIndex: either from number or from abbreviation
+    let bookIndex = Number(bookPart);
+    if (!bookIndex) {
+      bookIndex = bookMap[bookPart.toLowerCase()];
+    }
 
-  const text = getLanguage() === "Malayalam"
-    ? resp[chapterIndex - 1].bm
-    : resp[chapterIndex - 1].be;
+    if (!bookIndex || !resp[bookIndex - 1]) {
+      return setPlaceholder(getTranslation().searchPlaceHolder);
+    }
 
-  setPlaceholder(`${text} : ${chapterNum}${numExtraKeys()} ${getTranslation().chapter}`);
-};
+    const text = getLanguage() === "Malayalam"
+      ? resp[bookIndex - 1].bm
+      : resp[bookIndex - 1].be;
+
+    const placeholder = chapterNum
+      ? `${text} : ${chapterNum}${numExtraKeys()} ${getTranslation().chapter}`
+      : text;
+
+    setPlaceholder(placeholder);
+  };
+
 
 
   useEffect(() => {
