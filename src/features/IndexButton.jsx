@@ -30,8 +30,7 @@ function IndexButton() {
     let b = []; let b2 = [];
     let c = 1;
     if (!getLanguage() || getLanguage() == "Malayalam") { var h_lang = "bm"; } else { var h_lang = "be" }
-    response.forEach((rp) => {
-      response.forEach((rp, index) => {
+    response.forEach((rp, index) => {
         if (c <= 39) {
           b.push(
             <div key={index} className="ps-2 pe-1 fs-5" onClick={() => numberbox(rp, response)} style={{ backgroundColor: '' }} onMouseOver={(event) => { event.target.style.backgroundColor = '#0275d8' }} onMouseOut={(event) => { event.target.style.backgroundColor = '' }}>{rp[h_lang]}</div>
@@ -43,7 +42,6 @@ function IndexButton() {
         }
         c++;
       });
-    });
     setChapters(b);
     setChapters2(b2);
   }
