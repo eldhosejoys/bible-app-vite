@@ -77,43 +77,35 @@ function Header({ value = '' }) {
 
   const numExtraKeys = () => {
     const number = parseInt(location.pathname.split("/")[2]);
-    return isNaN(number) ? '' : number +(getTranslation().numExtra[number - 1] || getTranslation().numExtra[3]);
+    return isNaN(number) ? '' : (getTranslation().numExtra[number - 1] || getTranslation().numExtra[3]);
   };
 
   useEffect(() => {
     setInput(searchParams.get("q") || regInput.current.value);
   }, [searchParams]);
 
-  const setDynamicPlaceholder = async () => {
-    const pathParts = location.pathname.split("/").filter(Boolean);
-    if (pathParts.length < 2) {
-      setPlaceholder(getTranslation().searchPlaceHolder);
-      return;
-    }
+const setDynamicPlaceholder = async () => {
+  const match = location.pathname.match(/^\/\d+\/(\d+)(?:[/:](\d+(?:-\d+)?))?/);
 
-    let chapterNum, verseNum;
-    if (pathParts[2] && !pathParts[1].includes(':')) {
-      chapterNum = pathParts[1];
-      verseNum = pathParts[2];
-    } else if (pathParts[1].includes(':')) {
-      [chapterNum, verseNum] = pathParts[1].split(':');
-    } else {
-      chapterNum = pathParts[1];
-    }
+  // no match → fallback
+  if (!match) return setPlaceholder(getTranslation().searchPlaceHolder);
 
-    const resp = await getCacheData('cache', siteConfig().titleurl);
-    if (resp) {
-      const chapterIndex = parseInt(chapterNum);
-      if (!isNaN(chapterIndex) && resp[chapterIndex - 1]) {
-        const text = getLanguage() === 'Malayalam' 
-          ? resp[chapterIndex - 1].bm 
-          : resp[chapterIndex - 1].be;
-        setPlaceholder(`${text} : ${verseNum || ''}${numExtraKeys()} ${getTranslation().chapter}`);
-      } else {
-        setPlaceholder(getTranslation().searchPlaceHolder);
-      }
-    }
-  };
+  const [ , chapterNum ] = match;
+  const resp = await getCacheData("cache", siteConfig().titleurl);
+  if (!resp) return setPlaceholder(getTranslation().searchPlaceHolder);
+
+  const chapterIndex = +chapterNum;
+  if (!chapterIndex || !resp[chapterIndex - 1]) {
+    return setPlaceholder(getTranslation().searchPlaceHolder);
+  }
+
+  const text = getLanguage() === "Malayalam"
+    ? resp[chapterIndex - 1].bm
+    : resp[chapterIndex - 1].be;
+
+  setPlaceholder(`${text} : ${chapterNum}${numExtraKeys()} ${getTranslation().chapter}`);
+};
+
 
   useEffect(() => {
     setDynamicPlaceholder();
