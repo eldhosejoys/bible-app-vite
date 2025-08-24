@@ -98,11 +98,6 @@ function Search() {
         setBibleData(bible);
         setTitleData(titles);
 
-        if (bible.length > 0 && titles.length > 0) {
-          console.log("Type of bibleData book ID:", typeof bible[0].b); // e.g., "number"
-          console.log("Type of titleData book ID:", typeof titles[0].n); // e.g., "string"
-        }
-
       } catch (error) {
         console.error("Failed to fetch data:", error);
         // Optionally set an error state here
