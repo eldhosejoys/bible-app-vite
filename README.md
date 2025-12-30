@@ -3,3 +3,6 @@
 This is a malayalam bible website made using ReactJs with Vite. I have made this project available to public so you can spread the Gospel with people who read malayalam, or modify the data for your preferred audience.
 
 From the build/dist folder, you will find the build files to deploy the project. You may need to rebuild to make sure to get the latest updated one.
+
+For data conversions i have use this repository: https://github.com/eldhosejoys/bible-data
+And for api used: https://github.com/eldhosejoys/bible-api
