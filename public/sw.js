@@ -1,5 +1,5 @@
 // Version this cache - increment when you deploy a new build
-const CACHE_VERSION = "v1767941052148";
+const CACHE_VERSION = "v1767971376373";
 const CACHE_NAME = `bible-app-${CACHE_VERSION}`;
 
 // Static assets to pre-cache on install

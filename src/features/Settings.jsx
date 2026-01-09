@@ -46,10 +46,10 @@ function Settings() {
     // }
 
     const fontSizeValue = localStorage.getItem('fontSize');
-    setFontSize(fontSizeValue || 5);
+    setFontSize(fontSizeValue || 4);
     if (!fontSizeValue) {
-      localStorage.setItem('fontSize', 5);
-      setFontSize(5);
+      localStorage.setItem('fontSize', 4);
+      setFontSize(4);
     }
 
     const compact = localStorage.getItem('compact');
