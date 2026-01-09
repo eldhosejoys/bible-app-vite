@@ -13,94 +13,98 @@ code {
 } */
 
 
+
 body,
 html {
-    height: 100%
+  height: 100%;
+  /* Noto Sans Malayalam for consistent Malayalam rendering across all browsers */
+  font-family: 'Noto Sans Malayalam', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
 }
 
 .feature {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    height: 3rem;
-    width: 3rem;
-    font-size: 1.5rem
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 3rem;
+  width: 3rem;
+  font-size: 1.5rem
 }
 
 .bg-featured-blog {
-    height: 100%;
-    width: 100%;
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-    min-height: 15rem
+  height: 100%;
+  width: 100%;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  min-height: 15rem
 }
 
 .hover-effect:hover {
-    transform: scale(1.02);
-    /* background-color: #faebd7 */
+  transform: scale(1.02);
+  /* background-color: #faebd7 */
 }
 
 .hover-effect a:hover {
-    font-weight: 700
+  font-weight: 700
 }
 
- div.numberbox:hover {
-    background-color: #8D9EFF
+div.numberbox:hover {
+  background-color: #8D9EFF
 }
 
 /* .arrowbutton a {
     background-color: #eee
 } */
 
-.arrowbutton a:hover{
-    background-color: #8D9EFF !important
+.arrowbutton a:hover {
+  background-color: #8D9EFF !important
 }
 
 div.scrollmenu {
-    background-color: #212529;
-    overflow: auto;
-    white-space: nowrap
+  background-color: #212529;
+  overflow: auto;
+  white-space: nowrap
 }
 
 div.scrollmenu a {
-    display: inline-block;
-    color: #fff;
-    text-align: center;
-    padding: 14px;
-    text-decoration: none
+  display: inline-block;
+  color: #fff;
+  text-align: center;
+  padding: 14px;
+  text-decoration: none
 }
 
 div.scrollmenu a:hover {
-    background-color: #777
+  background-color: #777
 }
 
-.numberbox{
-    --bg: #eee;
-    --primary: #333;
-    --secondary: #fff;
-    --spacing: 20px;
-    --font-family: Helvetica Neue, Helvetica, Arial, sans-serif;
-    --font-size: 18px;
-    font-size: var(--font-size);
-    font-family: var(--font-family);
-    font-weight: 400;
-    box-sizing: border-box;
-    -webkit-font-smoothing: antialiased;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    transition: all .25s ease-in-out;
-    text-align: center;
-    width: 40px;
-    height: 40px;
-    line-height: 1;
-    padding: 0;
-    margin: 4px;
-    cursor: pointer;
-    color: #333;
-    border-radius: 5px;
-    background-color: #eee;
+.numberbox {
+  --bg: #eee;
+  --primary: #333;
+  --secondary: #fff;
+  --spacing: 20px;
+  --font-family: Helvetica Neue, Helvetica, Arial, sans-serif;
+  --font-size: 18px;
+  font-size: var(--font-size);
+  font-family: var(--font-family);
+  font-weight: 400;
+  box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: all .25s ease-in-out;
+  text-align: center;
+  width: 40px;
+  height: 40px;
+  line-height: 1;
+  padding: 0;
+  margin: 4px;
+  cursor: pointer;
+  color: #333;
+  border-radius: 5px;
+  background-color: #eee;
 }
 
 /* Search bar suggestion start */
@@ -147,6 +151,7 @@ div.scrollmenu a:hover {
 .dropdown-toggle::after {
   content: none;
 }
+
 /* drop down arrow remove end */
 
 /* FLOATING button start*/
@@ -157,4 +162,5 @@ div.scrollmenu a:hover {
   right: 10px;
   /* display: none; */
 }
+
 /* FLOATING button end*/

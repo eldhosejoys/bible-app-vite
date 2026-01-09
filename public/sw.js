@@ -1,5 +1,5 @@
 // Version this cache - increment when you deploy a new build
-const CACHE_VERSION = "v1767940074661";
+const CACHE_VERSION = "v1767941052148";
 const CACHE_NAME = `bible-app-${CACHE_VERSION}`;
 
 // Static assets to pre-cache on install
@@ -25,6 +25,12 @@ const urlsToCache = [
   "/assets/images/stop.svg",
   "/assets/images/clipboard-check.svg",
   "/assets/images/clipboard-x.svg",
+  // Self-hosted Malayalam fonts
+  "/assets/fonts/fonts.css",
+  "/assets/fonts/NotoSansMalayalam-Regular.ttf",
+  "/assets/fonts/NotoSansMalayalam-Medium.ttf",
+  "/assets/fonts/NotoSansMalayalam-SemiBold.ttf",
+  "/assets/fonts/NotoSansMalayalam-Bold.ttf",
 ];
 
 // Patterns for progressive caching (cached when first accessed)
@@ -34,6 +40,9 @@ const PROGRESSIVE_CACHE_PATTERNS = {
   // Cross-reference JSON files
   crossRef: /^\/assets\/json\/books-cross\/\d+\.json$/,
 };
+
+// Font files pattern for progressive caching (now self-hosted, so this is not needed)
+// Fonts are pre-cached in urlsToCache above
 
 // Install event - pre-cache essential files
 self.addEventListener("install", (event) => {
