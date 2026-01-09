@@ -85,7 +85,7 @@ function Search() {
           const cached = await getCacheData('cache', url);
           if (cached) return cached;
           const response = await axios.get(url);
-          addDataIntoCache('cache', url, response);
+          addDataIntoCache('cache', url, response.data);
           return response.data;
         };
 
@@ -133,27 +133,27 @@ function Search() {
     }
   }, [q, pval, filteredResults.length, navigate, rangevalue]);
 
-useEffect(() => {
-  const cleanQ = q.trim().replace(/^\//, '').replace(/\/$/, '');
+  useEffect(() => {
+    const cleanQ = q.trim().replace(/^\//, '').replace(/\/$/, '');
 
-  // Regex to match:
-  // 1
-  // 1/2
-  // 1/2/3
-  // 1/2/3-4
-  // 1/2/3:4
-  // 1/2/3:4-6
-  const pathRegex = /^(\d+)(?:\/(\d+))?(?:\/(\d+(?::\d+)?(?:-\d+)?))?$/;
+    // Regex to match:
+    // 1
+    // 1/2
+    // 1/2/3
+    // 1/2/3-4
+    // 1/2/3:4
+    // 1/2/3:4-6
+    const pathRegex = /^(\d+)(?:\/(\d+))?(?:\/(\d+(?::\d+)?(?:-\d+)?))?$/;
 
-  if (pathRegex.test(cleanQ)) {
-    const parts = cleanQ.split('/');
-    if (parts.length === 1) {
-      navigate(`/${parts[0]}/1`);
-    } else {
-      navigate(`/${cleanQ}`);
+    if (pathRegex.test(cleanQ)) {
+      const parts = cleanQ.split('/');
+      if (parts.length === 1) {
+        navigate(`/${parts[0]}/1`);
+      } else {
+        navigate(`/${cleanQ}`);
+      }
     }
-  }
-}, [q, navigate]);
+  }, [q, navigate]);
 
 
   // Optimization: Memoize the result count message.

@@ -60,29 +60,23 @@ export const copyToClipBoard = async (copyMe, index, itemsRef, itemsRef2) => {
   }
 }
 
-// Function to add our give data into cache
+// Function to add data into cache - now a no-op since service worker handles caching
+// Keeping for backwards compatibility but it does nothing
 export const addDataIntoCache = (cacheName, url, response) => {
-  if (!navigator.onLine) return;
-  const data = new Response(JSON.stringify(response));
-  if ('caches' in window) {
-    caches.open(cacheName).then(function (cache) {
-      return cache.addAll([
-        url,
-      ]);
-    });
-  }
+  // Service worker handles all caching now via fetch event
+  // This function is kept for backwards compatibility but does nothing
 }
 
-// Function to get cache data
+// Function to get cache data - searches all caches for the URL
 export const getCacheData = async (cacheName, url) => {
   if (typeof window === 'undefined' || !('caches' in window)) {
     console.warn('Cache API not available');
     return false;
   }
-  const cacheStorage = await caches.open(cacheName);
-  const cachedResponse = await cacheStorage.match(url); // Returns a promise w/ matched cache
+
+  // Try to find the response in any cache (service worker uses versioned cache names)
+  const cachedResponse = await caches.match(url);
   if (!cachedResponse || !cachedResponse.ok) { return false }
-  // console.log(await cachedResponse.json()); // prints json object with value of key matched
   return await cachedResponse.json();
 }
 

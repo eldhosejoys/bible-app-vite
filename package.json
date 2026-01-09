@@ -4,9 +4,9 @@
   "version": "1.2.7",
   "type": "module",
   "scripts": {
-    "prebuild": "node updateEnv.js",
+    "prebuild": "node updateEnv.js && node update-sw-version.js",
     "dev": "vite",
-    "build": "npm run prebuild && vite build",
+    "build": "npm run prebuild && vite build && node inject-assets-to-sw.js",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview"
   },

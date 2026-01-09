@@ -32,7 +32,7 @@ function Index() {
       }
       try {
         const response = await axios.get(url);
-        addDataIntoCache('cache', cacheKey, response);
+        addDataIntoCache('cache', cacheKey, response.data);
         return response.data;
       } catch (error) {
         console.error("Error fetching data for:", url, error);
@@ -50,13 +50,13 @@ function Index() {
         document.title = getTranslation().siteTitle;
         setBibleData(titles);
       }
-      
+
       setIsLoading(false);
     };
 
     loadAllData();
 
-  }, []); 
+  }, []);
 
   // useMemo will only re-calculate the `cards` when `bibleData` changes.
   // This avoids expensive re-rendering on every component update.
@@ -103,7 +103,7 @@ function Index() {
                 </div>
               ))}
             </div>
-            
+
             <div style={{ position: "relative", marginBottom: "-35px" }} className="mt-3 arrowbutton">
               <span onClick={() => collapse(book.n)} className="btn border bg-body rounded-circle fw-bold arrowbutton" style={{ color: "#0d6efd" }}>
                 ⇣⇡
