@@ -686,9 +686,26 @@ function VerseActionToolbar({
 
         @media (max-width: 768px) {
           .btn-text { display: none; }
-          .premium-action-btn { padding: 10px; }
-          .verse-action-toolbar { gap: 8px; padding: 10px; border-radius: 20px; }
-          .selection-indicator { padding: 8px 12px; }
+          .premium-action-btn { padding: 6px 8px !important; }
+          .verse-action-toolbar { 
+            gap: 6px !important; 
+            padding: 8px 8px !important; 
+            border-radius: 14px !important;
+            max-width: 92vw !important;
+            width: max-content !important;
+            overflow-x: auto !important;
+            justify-content: flex-start !important; /* Ensure content starts from left if scrolling */
+            /* Hide scrollbar for Chrome, Safari and Opera */
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none; /* Firefox */
+            -ms-overflow-style: none;  /* IE and Edge */
+          }
+          .verse-action-toolbar::-webkit-scrollbar {
+            display: none;
+          }
+          .selection-indicator { padding: 5px 10px !important; font-size: 0.75rem !important; flex-shrink: 0; }
+          .premium-action-btn svg { width: 16px; height: 16px; min-width: 16px; }
+          .premium-action-btn { padding: 6px 8px !important; flex-shrink: 0; }
         }
       `}</style>
         </>
