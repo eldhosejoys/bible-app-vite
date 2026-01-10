@@ -74,6 +74,7 @@ function Content({ book, chapter, verse }) {
 
   const [chapterUserData, setChapterUserData] = useState({ bookmarks: [], notes: [], highlights: [] });
   const [isUserDataLoaded, setIsUserDataLoaded] = useState(false);
+  const [settingsTick, setSettingsTick] = useState(0);
 
   const itemsRef = useRef([]);
   const itemsRef2 = useRef([]);
@@ -129,9 +130,15 @@ function Content({ book, chapter, verse }) {
     // So we'll add a custom event listener 'themeChange'.
     window.addEventListener('themeChange', handleThemeChange);
 
+    const handleSettingsChange = () => {
+      setSettingsTick(t => t + 1);
+    };
+    window.addEventListener('settingsChange', handleSettingsChange);
+
     return () => {
       window.removeEventListener('storage', handleThemeChange);
       window.removeEventListener('themeChange', handleThemeChange);
+      window.removeEventListener('settingsChange', handleSettingsChange);
     };
   }, []);
 
@@ -496,7 +503,7 @@ function Content({ book, chapter, verse }) {
 
     // Get user preferences from localStorage
     const currentFontSize = localStorage.getItem('fontSize');
-    const currentCompact = Boolean(localStorage.getItem('compact'));
+    const currentCompact = localStorage.getItem('compact') === 'true';
     const theme = currentTheme;
     const colorText = theme === 'dark' ? 'text-warning' : 'text-danger';
     // --- RENDER BOOK INFO PAGE ---
@@ -597,7 +604,16 @@ function Content({ book, chapter, verse }) {
             if (isNextSelected) selectionClass += ' connected-bottom';
           }
 
-          const wrapperMarginClass = (isGroupSelected && isNextSelected) ? 'col mb-0 pushdata' : `col ${currentCompact ? 'mb-1' : 'mb-2'} pushdata`;
+          // Check if any verse in the group has indicators to determine margin needs
+          const hasGroupIndicators = versesInRange.some(v => {
+            // Quick check against user data without full render
+            const vNum = Number(v.v);
+            return chapterUserData.bookmarks.some(b => b.v.includes(vNum)) ||
+              chapterUserData.notes.some(n => n.v.includes(vNum));
+          });
+
+          const compactMargin = hasGroupIndicators ? 'mb-1' : 'mb-0';
+          const wrapperMarginClass = (isGroupSelected && isNextSelected) ? 'col mb-0 pushdata' : `col ${currentCompact ? compactMargin : 'mb-2'} pushdata`;
 
           finalContent.push(
             <div key={`url-group-${startVerse}-${endVerse}`} className={wrapperMarginClass} id={`v-${startVerse}`}>
@@ -724,7 +740,16 @@ function Content({ book, chapter, verse }) {
               if (isNextSelected) selectionClass += ' connected-bottom';
             }
 
-            const wrapperMarginClass = (isGroupSelected && isNextSelected) ? 'col mb-0 pushdata' : `col ${currentCompact ? 'mb-1' : 'mb-2'} pushdata`;
+            // detailed indicator check for groups (highlights might not have icons)
+            const hasMainIndicators = groupKey.type === 'bookmark' || groupKey.type === 'note';
+            const hasInnerIndicators = !hasMainIndicators && groupVerses.some(v => {
+              const vNum = Number(v.v);
+              return chapterUserData.bookmarks.some(b => b.v.includes(vNum)) ||
+                chapterUserData.notes.some(n => n.v.includes(vNum));
+            });
+
+            const compactMargin = (hasMainIndicators || hasInnerIndicators) ? 'mb-1' : 'mb-0';
+            const wrapperMarginClass = (isGroupSelected && isNextSelected) ? 'col mb-0 pushdata' : `col ${currentCompact ? compactMargin : 'mb-2'} pushdata`;
 
             finalContent.push(
               <div key={`group-${groupKey.type}-${groupKey.id}`} className={wrapperMarginClass} id={`v-${groupStartV}`}>
@@ -787,9 +812,9 @@ function Content({ book, chapter, verse }) {
               if (isNextSelected) selectionClass += ' connected-bottom';
             }
 
-            const wrapperMarginClass = (isSelected && isNextSelected) ? 'col mb-0 pushdata' : `col ${currentCompact ? 'mb-1' : 'mb-2'} pushdata`;
-
             const indicators = renderVerseIndicators(verseNum);
+            const compactMargin = indicators ? 'mb-1' : 'mb-0';
+            const wrapperMarginClass = (isSelected && isNextSelected) ? 'col mb-0 pushdata' : `col ${currentCompact ? compactMargin : 'mb-2'} pushdata`;
 
             finalContent.push(
               <div key={`v-${verseData.v}`} className={wrapperMarginClass} id={`v-${verseData.v}`}>
@@ -832,7 +857,7 @@ function Content({ book, chapter, verse }) {
       }
       setCards(finalContent);
     }
-  }, [bibleData, titlesData, headingsData, crossRefData, introData, activeCrossReference, location, expandedReferences, selectedVerses, chapterUserData, isUserDataLoaded, currentTheme]);
+  }, [bibleData, titlesData, headingsData, crossRefData, introData, activeCrossReference, location, expandedReferences, selectedVerses, chapterUserData, isUserDataLoaded, currentTheme, settingsTick]);
 
   // Separate effect for History logging to avoid re-logging on local state updates
   useEffect(() => {

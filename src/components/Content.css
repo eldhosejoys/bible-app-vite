@@ -149,6 +149,11 @@
     padding-top: 0.4rem !important;
 }
 
+/* Fix for icons in compact mode being pulled up too high due to tight card padding */
+.words-text-card:not(.card) .verse-num-wrapper.has-indicators {
+    margin-top: 0 !important;
+}
+
 .verse-indicators-container {
     position: absolute;
     top: 0;

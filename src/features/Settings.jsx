@@ -136,6 +136,7 @@ function Settings() {
     const newValue = !isCompactChecked;
     setIsCompactChecked(newValue);
     handleCompact(newValue);
+    window.dispatchEvent(new Event('settingsChange'));
   };
 
   const toggleShowReferences = () => {
@@ -199,6 +200,7 @@ function Settings() {
   const handleFontSizeChange = (event) => {
     setFontSize(7 - event);
     handleFontSize(event);
+    window.dispatchEvent(new Event('settingsChange'));
   };
 
   const randomVerse = async () => {

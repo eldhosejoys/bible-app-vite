@@ -1,5 +1,5 @@
 // Version this cache - increment when you deploy a new build
-const CACHE_VERSION = "v1768039408418";
+const CACHE_VERSION = "v1768039935962";
 const CACHE_NAME = `bible-app-${CACHE_VERSION}`;
 
 // Static assets to pre-cache on install
@@ -7,9 +7,9 @@ const urlsToCache = [
   "/",
   "/index.html",
   // Auto-generated: Vite build assets
-  "/assets/index-6c6109fe.js",
+  "/assets/index-8ab5e774.js",
   "/assets/fonts/fonts.css",
-  "/assets/index-9f717769.css",
+  "/assets/index-eab5e5a2.css",
   "/manifest.json",
   "/favicon.ico",
   "/assets/json/intro.json",
