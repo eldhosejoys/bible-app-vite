@@ -249,3 +249,67 @@ export const setLanguage = (lang) => {
 export const areReferencesEnabled = () => {
   return localStorage.getItem('showReferences') === 'true';
 };
+
+export const formatTime = (timestamp) => {
+  if (!timestamp) return '';
+  const date = new Date(timestamp);
+  let hours = date.getHours();
+  const minutes = date.getMinutes();
+  const ampm = hours >= 12 ? 'pm' : 'am';
+  hours = hours % 12;
+  hours = hours ? hours : 12;
+  const strMinutes = minutes < 10 ? '0' + minutes : minutes;
+  return `${hours}:${strMinutes}${ampm}`;
+};
+
+export const formatDate = (timestamp) => {
+  if (!timestamp) return '';
+  const date = new Date(timestamp);
+  const day = date.getDate();
+  const suffix = (d) => {
+    if (d > 3 && d < 21) return 'th';
+    switch (d % 10) {
+      case 1: return "st";
+      case 2: return "nd";
+      case 3: return "rd";
+      default: return "th";
+    }
+  };
+  const month = date.toLocaleString('default', { month: 'short' });
+  const year = date.getFullYear();
+  return `${day}${suffix(day)} ${month} ${year}`;
+};
+
+export const formatDateTime = (timestamp) => {
+  if (!timestamp) return '';
+  return `${formatTime(timestamp)}, ${formatDate(timestamp)}`;
+};
+
+/**
+ * Formats an array of verse numbers into a standard reference string.
+ * Groups consecutive verses (e.g., [1, 2, 3, 5, 7, 8] becomes "1-3,5,7-8")
+ */
+export const formatVerseRange = (verses) => {
+  if (!verses || verses.length === 0) return '';
+  const sorted = [...new Set(verses)].map(Number).sort((a, b) => a - b);
+  const result = [];
+  let start = sorted[0];
+  let prev = sorted[0];
+
+  for (let i = 1; i <= sorted.length; i++) {
+    if (i < sorted.length && sorted[i] === prev + 1) {
+      prev = sorted[i];
+    } else {
+      if (start === prev) {
+        result.push(start.toString());
+      } else {
+        result.push(`${start}-${prev}`);
+      }
+      if (i < sorted.length) {
+        start = sorted[i];
+        prev = sorted[i];
+      }
+    }
+  }
+  return result.join(',');
+};

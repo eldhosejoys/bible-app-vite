@@ -3,8 +3,29 @@ import { useState, useEffect, useRef, React, Fragment } from "react";
 import axios from "axios";
 import { siteConfig, getBible } from "../config/siteConfig";
 import { getTranslation } from '../config/SiteTranslations';
-import { speakcontent, getCacheData, addDataIntoCache, copyToClipBoard, getLanguage, areReferencesEnabled } from '../config/Utils';
+import { getCacheData, addDataIntoCache, getLanguage, areReferencesEnabled, formatVerseRange } from '../config/Utils';
+import {
+  getHighlightForVerse,
+  getNoteForVerse,
+  getNotesForVerse,
+  isBookmarked,
+  getBookmarkForVerse,
+  getBookmarksForVerse,
+  removeBookmark,
+  addToHistory,
+  addNote,
+  removeNote,
+  parseVerseId,
+  getBookmarksForChapter,
+  getNotesForChapter,
+  getHighlightsForChapter,
+  onVerseStorageChange,
+} from '../config/VerseStorage';
 import CrossReferenceVerse from "./CrossReferenceVerse";
+import VerseActionToolbar from "./VerseActionToolbar";
+import GlobalNoteTooltip from "./GlobalNoteTooltip";
+import NoteEditor from "./NoteEditor";
+import './Content.css';
 
 // Helper function to parse verse parameter like "4" or "4-7"
 function parseVerseRange(verseParam) {
@@ -36,11 +57,83 @@ function Content({ book, chapter, verse }) {
   const [headingsData, setHeadingsData] = useState(null);
   const [crossRefData, setCrossRefData] = useState(null);
   const [introData, setIntroData] = useState(null);
+  const [currentTheme, setCurrentTheme] = useState(localStorage.getItem('theme') || 'light');
+
+  // Selection state for multi-verse actions
+  const [selectedVerses, setSelectedVerses] = useState([]);
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  // Note popover state (for editing)
+  const [activeNotePopover, setActiveNotePopover] = useState(null); // { verseNum, note }
+  const [editingNoteContent, setEditingNoteContent] = useState('');
+  const [isEditingNote, setIsEditingNote] = useState(false);
+
+  // Note tooltip state (for quick preview - rendered at top level)
+  const [hoverNoteTooltip, setHoverNoteTooltip] = useState(null); // { note, x, y }
+
+  const [chapterUserData, setChapterUserData] = useState({ bookmarks: [], notes: [], highlights: [] });
+  const [isUserDataLoaded, setIsUserDataLoaded] = useState(false);
 
   const itemsRef = useRef([]);
   const itemsRef2 = useRef([]);
   const itemsRef3 = useRef([]);
   const highlightedElementsRef = useRef({ verse: null, button: null, timer: null });
+  const tooltipTimeoutRef = useRef(null);
+  const lastScrolledKeyRef = useRef(null);
+
+  // Fetch user data (bookmarks, notes, highlights)
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (!params.book || !params.chapter) return;
+      try {
+        const [bookmarks, notes, highlights] = await Promise.all([
+          getBookmarksForChapter(params.book, params.chapter),
+          getNotesForChapter(params.book, params.chapter),
+          getHighlightsForChapter(params.book, params.chapter)
+        ]);
+        setChapterUserData({ bookmarks, notes, highlights });
+      } catch (e) {
+        console.error("Error fetching user data", e);
+      } finally {
+        setIsUserDataLoaded(true);
+      }
+    };
+
+    // Initial fetch
+    fetchUserData();
+
+    // Subscribe to global storage updates (added/removed bookmarks etc from other components)
+    const unsubscribe = onVerseStorageChange(() => {
+      fetchUserData();
+    });
+
+    return () => unsubscribe();
+  }, [params.book, params.chapter, refreshKey]);
+
+  // Listen for theme changes (optional but good for consistency without reload)
+  useEffect(() => {
+    const handleThemeChange = () => {
+      const theme = localStorage.getItem('theme') || 'light';
+      setCurrentTheme(theme);
+    };
+
+    // Listen for storage events (cross-tab)
+    window.addEventListener('storage', handleThemeChange);
+
+    // Also check on interval or custom event if needed, but for now assuming reload or storage event
+    // Ideally, we'd use a Context for theme, but for this quick fix:
+    // We can also poll or hook into the Settings change if possible.
+    // For now, let's just expose a global event or something? 
+    // Actually, local storage updates in the same tab DON'T fire 'storage' event.
+    // So we'll add a custom event listener 'themeChange'.
+    window.addEventListener('themeChange', handleThemeChange);
+
+    return () => {
+      window.removeEventListener('storage', handleThemeChange);
+      window.removeEventListener('themeChange', handleThemeChange);
+    };
+  }, []);
 
 
   const handleCrossReferenceClick = (crossRefData, verseIndex) => {
@@ -50,34 +143,64 @@ function Content({ book, chapter, verse }) {
     });
   };
 
-  const handleMultiVerseCopy = (startVerse, endVerse, index) => {
-    if (!bibleData) return;
-
-    const versesToCopy = bibleData.filter(v =>
-      Number(v.b) == params.book &&
-      Number(v.c) == params.chapter &&
-      Number(v.v) >= startVerse &&
-      Number(v.v) <= endVerse
-    ).sort((a, b) => a.v - b.v);
-
-    if (versesToCopy.length > 0) {
-      const combinedText = versesToCopy.map(v => v.t).join(' ');
-      const reference = startVerse === endVerse
-        ? `(${chaptername} ${params.chapter}:${startVerse})`
-        : `(${chaptername} ${params.chapter}:${startVerse}-${endVerse})`;
-
-      // This call now passes the correct index and refs that copyToClipBoard expects
-      copyToClipBoard(`${combinedText} ${reference}`, index, itemsRef, itemsRef2);
-    }
+  // Toggle verse selection
+  const handleVerseSelect = (verseNum) => {
+    setSelectedVerses(prev => {
+      if (prev.includes(verseNum)) {
+        const newSelection = prev.filter(v => v !== verseNum);
+        if (newSelection.length === 0) {
+          setIsSelectionMode(false);
+        }
+        return newSelection;
+      } else {
+        setIsSelectionMode(true);
+        return [...prev, verseNum].sort((a, b) => a - b);
+      }
+    });
   };
 
-  const handleMultiVerseSpeak = async (chap, startVerse, endVerse, groupIndex) => {
-    // play verses one after another
-    for (let i = startVerse - 1; i < endVerse; i++) {
-      await speakcontent(chap, i, itemsRef, itemsRef2, itemsRef3, groupIndex, true);
-    }
+  // Toggle selection for a range of verses (for grouped cards)
+  const handleVerseSelectRange = (start, end) => {
+    const range = [];
+    for (let i = Number(start); i <= Number(end); i++) range.push(i);
+
+    setSelectedVerses(prev => {
+      const allSelected = range.every(v => prev.includes(v));
+      let newSelection;
+      if (allSelected) {
+        // Deselect all
+        newSelection = prev.filter(v => !range.includes(v));
+      } else {
+        // Select all (merge)
+        newSelection = [...new Set([...prev, ...range])].sort((a, b) => a - b);
+      }
+
+      setIsSelectionMode(newSelection.length > 0);
+      return newSelection;
+    });
   };
 
+  // Clear selection
+  const handleClearSelection = () => {
+    setSelectedVerses([]);
+    setIsSelectionMode(false);
+  };
+
+  // Handle action complete - refresh highlights, etc.
+  const handleActionComplete = () => {
+    setRefreshKey(prev => prev + 1);
+    handleClearSelection();
+  };
+
+  // Handle opening note popover from toolbar
+  const handleOpenNote = (noteData) => {
+    setActiveNotePopover(noteData);
+    setEditingNoteContent(noteData.note?.n || '');
+    setIsEditingNote(true);
+  };
+
+  // Check if a verse is selected
+  const isVerseSelected = (verseNum) => selectedVerses.includes(verseNum);
 
 
   // --- ASYNC HELPERS (Corrected) ---
@@ -131,6 +254,7 @@ function Content({ book, chapter, verse }) {
   };
 
   // --- DATA FETCHING EFFECT ---
+  // --- DATA FETCHING EFFECT (Bible Text, Titles, etc) ---
   useEffect(() => {
     window.speechSynthesis.cancel();
     setCards([<div className="spinner-grow text-center" key="loading" role="status"><span className="visually-hidden">Loading...</span></div>]);
@@ -138,10 +262,13 @@ function Content({ book, chapter, verse }) {
     // Reset all state on navigation
     setActiveCrossReference({});
     setBibleData(null);
+    setIsUserDataLoaded(false); // Reset user data loaded flag on navigation
     setTitlesData(null);
     setHeadingsData(null);
     setCrossRefData(null);
     setIntroData(null);
+    setSelectedVerses([]);
+    setIsSelectionMode(false);
     itemsRef.current = [];
     itemsRef2.current = [];
     itemsRef3.current = [];
@@ -174,9 +301,9 @@ function Content({ book, chapter, verse }) {
     };
 
     fetchData();
-  }, [location]);
+  }, [location]); // Depend on location/params only
 
-  // --- REUSABLE CROSS-REFERENCE RENDERER ---
+  // --- UI RENDERING HELPERS ---
   const renderCrossReferences = (references, verseIndex) => {
     if (!areReferencesEnabled() || !references || references.length === 0) {
       return null;
@@ -187,12 +314,15 @@ function Content({ book, chapter, verse }) {
     const referencesToShow = isExpanded ? sortedReferences : sortedReferences.slice(0, 5);
 
     return (
-      <div className="mt-2">
+      <div className="mt-2" onClick={(e) => e.stopPropagation()}>
         <div>
           {referencesToShow.map((cr, idx) => (
             <button
               key={idx}
-              onClick={() => handleCrossReferenceClick(cr, verseIndex)}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleCrossReferenceClick(cr, verseIndex);
+              }}
               className={`btn btn-sm ${activeCrossReference.verseIndex === verseIndex && activeCrossReference.refData === cr ? 'btn-primary' : 'btn-light'} rounded-pill me-2 mb-1`}
               style={{ padding: '0.1rem 0.4rem', fontSize: '0.75rem', lineHeight: '1.2' }}
             >
@@ -201,7 +331,10 @@ function Content({ book, chapter, verse }) {
           ))}
           {sortedReferences.length > 5 && (
             <button
-              onClick={() => setExpandedReferences(prev => ({ ...prev, [verseIndex]: !isExpanded }))}
+              onClick={(e) => {
+                e.stopPropagation();
+                setExpandedReferences(prev => ({ ...prev, [verseIndex]: !isExpanded }));
+              }}
               className="btn btn-sm btn-secondary rounded-pill me-2 mb-1"
               style={{ padding: '0.1rem 0.4rem', fontSize: '0.75rem', lineHeight: '1.2' }}
             >
@@ -220,20 +353,152 @@ function Content({ book, chapter, verse }) {
     );
   };
 
+  const renderVerseIndicators = (verseNum, groupInfo = null) => {
+    const indicators = [];
+
+    // Get ALL bookmarks that contain this verse (from local state)
+    const bookmarks = chapterUserData.bookmarks.filter(b => b.v && b.v.includes(verseNum));
+
+    bookmarks.forEach((bookmark, idx) => {
+      // Within a group, only show bookmark icon on the first verse of this bookmark that's visible in the group
+      let shouldShowBookmark = true;
+      if (groupInfo && groupInfo.groupVerses) {
+        const bookmarkVerses = bookmark.v || [];
+        // Find the first verse of this bookmark that's in the visible group
+        const firstVisibleBookmarkVerse = groupInfo.groupVerses
+          .filter(v => bookmarkVerses.includes(v))
+          .sort((a, b) => a - b)[0];
+        shouldShowBookmark = verseNum === firstVisibleBookmarkVerse;
+      }
+
+      if (shouldShowBookmark) {
+        indicators.push(
+          <span
+            key={`bookmark-${bookmark.id}`}
+            title="Remove Bookmark"
+            className="note-indicator-icon"
+            onClick={async (e) => {
+              e.stopPropagation();
+              await removeBookmark(bookmark.id);
+              setRefreshKey(prev => prev + 1);
+            }}
+          >
+            🔖
+          </span>
+        );
+      }
+    });
+
+    // Get ALL notes that contain this verse (from local state)
+    const notes = chapterUserData.notes.filter(n => n.v && n.v.includes(verseNum));
+
+    notes.forEach((note, idx) => {
+      // Within a group, only show note icon on the first verse of this note that's visible in the group
+      let shouldShowNote = true;
+      if (groupInfo && groupInfo.groupVerses) {
+        const noteVerses = note.v || [];
+        // Find the first verse of this note that's in the visible group
+        const firstVisibleNoteVerse = groupInfo.groupVerses
+          .filter(v => noteVerses.includes(v))
+          .sort((a, b) => a - b)[0];
+        shouldShowNote = verseNum === firstVisibleNoteVerse;
+      }
+
+      if (shouldShowNote) {
+        indicators.push(
+          <span
+            key={`note-${note.id}`}
+            className="note-indicator-icon"
+            onClick={(e) => {
+              e.stopPropagation();
+
+              // Check if tooltip is already visible for this note
+              if (hoverNoteTooltip && hoverNoteTooltip.note.id === note.id) {
+                // Second click (or desktop click after hover) -> Open Editor
+                setHoverNoteTooltip(null);
+                const rect = e.currentTarget.getBoundingClientRect();
+
+                setActiveNotePopover({
+                  verseNum,
+                  note,
+                  isNew: false,
+                  selectedVerses: note.v || [verseNum],
+                  x: rect.left + rect.width / 2,
+                  y: rect.bottom + 10,
+                });
+
+                setEditingNoteContent(note.n || '');
+                setIsEditingNote(true);
+              } else {
+                // First click (Mobile) -> Show Tooltip
+                const rect = e.currentTarget.getBoundingClientRect();
+                setHoverNoteTooltip({
+                  note,
+                  x: rect.left + rect.width / 2,
+                  y: rect.top,
+                  rect: rect
+                });
+              }
+            }}
+            onMouseEnter={(e) => {
+              // Clear any pending timeout to hide
+              if (tooltipTimeoutRef.current) {
+                clearTimeout(tooltipTimeoutRef.current);
+                tooltipTimeoutRef.current = null;
+              }
+              // Show global tooltip
+              const rect = e.currentTarget.getBoundingClientRect();
+              setHoverNoteTooltip({
+                note,
+                x: rect.left + rect.width / 2,
+                y: rect.top,
+                rect: rect
+              });
+            }}
+            onMouseLeave={() => {
+              // Delay hiding to allow moving to the tooltip
+              tooltipTimeoutRef.current = setTimeout(() => {
+                setHoverNoteTooltip(null);
+              }, 300);
+            }}
+            title="" // Remove default browser tooltip
+          >
+            📝
+          </span>
+        );
+      }
+    });
+
+    if (indicators.length === 0) return null;
+
+    return (
+      <span className="verse-indicators-container">
+        {indicators}
+      </span>
+    );
+  };
+
+  const getVerseHighlightColor = (verseNum) => {
+    const highlight = chapterUserData.highlights.find(h => h.v && h.v.includes(verseNum));
+    return highlight?.h || null;
+  };
 
   // --- UI RENDERING EFFECT ---
   useEffect(() => {
     // Return early if essential data isn't loaded yet
-    if (!bibleData || !titlesData) {
+    if (!bibleData || !titlesData || !isUserDataLoaded) {
+      if (!bibleData || !titlesData || !isUserDataLoaded) {
+        // Keep spinner active
+        setCards([<div className="spinner-grow text-center" key="loading" role="status"><span className="visually-hidden">Loading...</span></div>]);
+      }
       return;
     }
 
     // Get user preferences from localStorage
     const currentFontSize = localStorage.getItem('fontSize');
     const currentCompact = Boolean(localStorage.getItem('compact'));
-    const theme = localStorage.getItem('theme');
+    const theme = currentTheme;
     const colorText = theme === 'dark' ? 'text-warning' : 'text-danger';
-
     // --- RENDER BOOK INFO PAGE ---
     if (params.chapter === 'info') {
       let infoContent = [];
@@ -275,19 +540,37 @@ function Content({ book, chapter, verse }) {
     } else if (params.chapter !== 'info') {
       const finalContent = [];
       const currentChapterVerses = bibleData.filter(obj => Number(obj.b) == params.book && Number(obj.c) == params.chapter);
-      const chap = JSON.stringify(currentChapterVerses);
       const [startVerse, endVerse] = parseVerseRange(params.verse);
+      itemsRef3.current = []; // Reset refs for the new chapter content to prevent stale scrolling targets
+
+      // Helper to identify grouping for a verse based on saved items
+      const getVerseGroupingKey = (vNum) => {
+        // If this specific verse is the target of the current URL selection, 
+        // don't treat it as the START of an automatic group.
+        if (vNum === startVerse) return null;
+
+        const bookmark = chapterUserData.bookmarks.find(b => b.v && b.v.includes(vNum));
+        if (bookmark) return { type: 'bookmark', id: bookmark.id, data: bookmark };
+
+        const note = chapterUserData.notes.find(n => n.v && n.v.includes(vNum));
+        if (note) return { type: 'note', id: note.id, data: note };
+
+        const highlight = chapterUserData.highlights.find(h => h.v && h.v.includes(vNum));
+        if (highlight) return { type: 'highlight', id: highlight.id, data: highlight };
+
+        return null;
+      };
 
       // Use a 'for' loop to allow skipping ahead after grouping verses
       for (let i = 0; i < currentChapterVerses.length; i++) {
         const verseData = currentChapterVerses[i];
         const verseNum = Number(verseData.v);
+        const isSelected = isVerseSelected(verseNum);
 
-        // --- RENDER A GROUPED CARD FOR A VERSE RANGE ---
-        // Check if the current verse is the start of a multi-verse selection range
+        // --- RENDER A GROUPED CARD FOR A VERSE RANGE (from URL) ---
         if (verseNum === startVerse && startVerse !== endVerse) {
           const versesInRange = currentChapterVerses.slice(i, i + (endVerse - startVerse + 1));
-          
+
           // Collect all cross-references for the verses in this group
           const groupCrossReferences = Array.isArray(crossRefData)
             ? versesInRange.flatMap(verse =>
@@ -295,44 +578,74 @@ function Content({ book, chapter, verse }) {
             )
             : [];
 
+          // Check if ALL verses in range have the SAME highlight color
+          const highlightColors = versesInRange.map(v => getVerseHighlightColor(Number(v.v)));
+          const allHaveSameHighlight = highlightColors.every(c => c === highlightColors[0] && c !== null && c !== undefined);
+          const rangeHighlightColor = allHaveSameHighlight ? highlightColors[0] : null;
+
+          // Visual Merging Logic (Selection-based) for URL Group
+          const isGroupSelected = isVerseSelected(startVerse);
+          const headingInfo = headingsData?.find(h => h.c == params.chapter && h.v == startVerse);
+          const nextHeadingInfo = headingsData?.find(h => h.c == params.chapter && h.v == (endVerse + 1));
+
+          const isPrevSelected = !headingInfo && isVerseSelected(startVerse - 1) && (i > 0 && Number(currentChapterVerses[i - 1].v) === startVerse - 1);
+          const isNextSelected = !nextHeadingInfo && isVerseSelected(endVerse + 1) && (i + versesInRange.length < currentChapterVerses.length && Number(currentChapterVerses[i + versesInRange.length].v) === endVerse + 1);
+
+          let selectionClass = isGroupSelected ? 'verse-selected' : '';
+          if (isGroupSelected) {
+            if (isPrevSelected) selectionClass += ' connected-top';
+            if (isNextSelected) selectionClass += ' connected-bottom';
+          }
+
+          const wrapperMarginClass = (isGroupSelected && isNextSelected) ? 'col mb-0 pushdata' : 'col mb-2 pushdata';
+
           finalContent.push(
-            <div key={`group-${startVerse}-${endVerse}`} className="col mb-2 pushdata" id={`v-${startVerse}`}>
-              <div className={`words-text-card ${currentCompact ? '' : 'shadow-sm card'}`}>
-                {/* Assign the ref of the first verse to this group for highlighting */}
-                <div className="card-body rounded col-12" ref={el => itemsRef3.current[i] = el}>
+            <div key={`url-group-${startVerse}-${endVerse}`} className={wrapperMarginClass} id={`v-${startVerse}`}>
+              <div
+                className={`words-text-card ${currentCompact ? '' : 'shadow-sm card'} ${selectionClass}`}
+                data-theme={currentTheme}
+                onClick={() => handleVerseSelectRange(startVerse, endVerse)}
+                style={{ cursor: 'pointer', transition: 'all 0.2s ease' }}
+              >
+                {/* Assign the ref of all verses in range to this group element */}
+                <div
+                  className="card-body rounded col-12"
+                  ref={el => {
+                    for (let k = 0; k < versesInRange.length; k++) {
+                      itemsRef3.current[i + k] = el;
+                    }
+                  }}
+                  style={rangeHighlightColor ? { backgroundColor: rangeHighlightColor, color: '#333' } : {}}
+                >
                   <div className="d-flex flex-row row-col-3 g-2 text-break">
                     <div className={`col text-left words-text fs-${currentFontSize}`}>
                       {/* Map over the verses in the range to display them individually */}
-                      {versesInRange.map((verse) => (
-                        <Fragment key={verse.v}>
-                          <span className="fw-bold">
-                            <Link className={`text-decoration-none words-text fs-${currentFontSize}`} to={`/${params.book}/${params.chapter}/${verse.v}`}>
-                              {verse.v}.
-                            </Link>
-                          </span>
-                          {' '}{verse.t}{' '}
-                        </Fragment>
-                      ))}
-                    </div>
-
-                    <div className={`words-text-player ${currentCompact ? 'd-none' : ''} col-auto text-right ml-auto my-auto`}>
-                      {/* Player and Copy buttons for the whole group */}
-                      {('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) && navigator.onLine && (
-                        <div key="speak-btn-group" style={{ position: "relative", marginRight: "-35px" }} className="arrowbutton card rounded-circle">
-                          <a ref={el => itemsRef2.current[i] = el} onClick={() => handleMultiVerseSpeak(chap, startVerse, endVerse, i)} className="btn btn-small rounded-circle fw-bold arrowbutton">
-                            <img ref={el => itemsRef.current[i] = el} src="/assets/images/play.svg" width="16px" height="16px" alt="play" />
-                          </a>
-                        </div>
-                      )}
-                      <div key="copy-btn-group" style={{ position: "relative", marginRight: "-35px" }} className="arrowbutton card rounded-circle">
-                        <a ref={el => itemsRef2.current[`c-${i}`] = el} onClick={() => handleMultiVerseCopy(startVerse, endVerse, i)} className="btn btn-small rounded-circle fw-bold arrowbutton">
-                          <img ref={el => itemsRef.current[`c-${i}`] = el} src="/assets/images/clipboard.svg" width="16px" height="16px" alt="copy" />
-                        </a>
-                      </div>
+                      {versesInRange.map((verse, idx) => {
+                        const vHighlight = !rangeHighlightColor ? getVerseHighlightColor(Number(verse.v)) : null;
+                        return (
+                          <Fragment key={verse.v}>
+                            <span className="verse-num-wrapper">
+                              {renderVerseIndicators(Number(verse.v), { type: 'url', isFirst: idx === 0, groupVerses: versesInRange.map(v => Number(v.v)) })}
+                              <Link
+                                className={`text-decoration-none fw-bold words-text fs-${currentFontSize}`}
+                                to={`/${params.book}/${params.chapter}/${verse.v}`}
+                                style={rangeHighlightColor || vHighlight ? { color: '#333' } : {}}
+                              >
+                                {verse.v}.
+                              </Link>
+                            </span>
+                            {' '}
+                            {vHighlight ? (
+                              <span style={{ backgroundColor: vHighlight, color: '#333' }}>{verse.t}</span>
+                            ) : verse.t}
+                            {' '}
+                          </Fragment>
+                        );
+                      })}
                     </div>
                   </div>
-                   {/* Render cross-references for the entire group, using the index of the first verse */}
-                   {renderCrossReferences(groupCrossReferences, i)}
+                  {/* Render cross-references for the entire group, using the index of the first verse */}
+                  {renderCrossReferences(groupCrossReferences, i)}
                 </div>
               </div>
             </div>
@@ -342,10 +655,9 @@ function Content({ book, chapter, verse }) {
           i += versesInRange.length - 1;
 
         } else {
-          // --- RENDER A SINGLE VERSE CARD (Original logic) ---
-
-          // Check for and render a heading if it exists for this verse
-          const headingInfo = headingsData?.find(h => h.c == params.chapter && h.v == verseData.v);
+          // --- RENDER A STORED-ITEM GROUPED CARD OR SINGLE VERSE ---
+          // 1. First, check and render heading if any
+          const headingInfo = headingsData?.find(h => h.c == params.chapter && h.v == verseNum);
           if (headingInfo && (!getLanguage() || getLanguage() == 'Malayalam')) {
             finalContent.push(
               <div key={`h-${verseData.v}`} className="col mb-2 pushdata" id={`h-${verseData.v}`}>
@@ -362,99 +674,260 @@ function Content({ book, chapter, verse }) {
             );
           }
 
-          const verseCrossReferences = Array.isArray(crossRefData) ? crossRefData.filter(cr => cr.c == params.chapter && cr.v == verseData.v) : [];
+          // 2. Determine if this verse starts a saved-item group
+          const groupKey = getVerseGroupingKey(verseNum);
+          let groupVerses = [verseData];
+          let nextIdx = i + 1;
 
-          finalContent.push(
-            <div key={`v-${verseData.v}`} className="col mb-2 pushdata" id={`v-${verseData.v}`}>
-              <div className={`words-text-card ${currentCompact ? '' : 'shadow-sm card'}`}>
-                <div className="card-body rounded col-12" ref={el => itemsRef3.current[i] = el}>
-                  <div className="d-flex flex-row row-col-3 g-2 text-break">
-                    <div className={`col text-left words-text fs-${currentFontSize}`}>
-                      <span className="fw-bold"><Link className={`text-decoration-none words-text fs-${currentFontSize}`} to={`/${params.book}/${params.chapter}/${verseData.v}`}>{verseData.v}.</Link></span> {verseData.t}
+          if (groupKey) {
+            while (nextIdx < currentChapterVerses.length) {
+              const nextVerseData = currentChapterVerses[nextIdx];
+              const nextVerseNum = Number(nextVerseData.v);
+
+              // Breaks: Heading, URL range start, or different grouping ID
+              if (headingsData?.find(h => h.c == params.chapter && h.v == nextVerseNum)) break;
+              if (nextVerseNum === startVerse) break;
+
+              const nextGroupKey = getVerseGroupingKey(nextVerseNum);
+              if (nextGroupKey && nextGroupKey.type === groupKey.type && nextGroupKey.id === groupKey.id) {
+                groupVerses.push(nextVerseData);
+                nextIdx++;
+              } else {
+                break;
+              }
+            }
+          }
+
+          // 3. Render Group OR Single Verse
+          if (groupVerses.length > 1) {
+            const groupStartV = Number(groupVerses[0].v);
+            const groupEndV = Number(groupVerses[groupVerses.length - 1].v);
+            const groupCrossReferences = Array.isArray(crossRefData)
+              ? groupVerses.flatMap(v => crossRefData.filter(cr => cr.c == params.chapter && cr.v == v.v))
+              : [];
+
+            // Background color logic: if grouped by highlight, use it. Otherwise, find first available highlight.
+            const rangeHighlightColor = groupKey.type === 'highlight' ? groupKey.data.h :
+              groupVerses.map(v => getVerseHighlightColor(Number(v.v))).find(c => c);
+
+            // Visual Merging Logic (Selection-based) for Stored Group
+            const isGroupSelected = isVerseSelected(groupStartV);
+            const nextHeadingInfo = headingsData?.find(h => h.c == params.chapter && h.v == (groupEndV + 1));
+
+            const isPrevSelected = !headingInfo && isVerseSelected(groupStartV - 1) && (i > 0 && Number(currentChapterVerses[i - 1].v) === groupStartV - 1);
+            const isNextSelected = !nextHeadingInfo && isVerseSelected(groupEndV + 1) && (nextIdx < currentChapterVerses.length && Number(currentChapterVerses[nextIdx].v) === groupEndV + 1);
+
+            let selectionClass = isGroupSelected ? 'verse-selected' : '';
+            if (isGroupSelected) {
+              if (isPrevSelected) selectionClass += ' connected-top';
+              if (isNextSelected) selectionClass += ' connected-bottom';
+            }
+
+            const wrapperMarginClass = (isGroupSelected && isNextSelected) ? 'col mb-0 pushdata' : 'col mb-2 pushdata';
+
+            finalContent.push(
+              <div key={`group-${groupKey.type}-${groupKey.id}`} className={wrapperMarginClass} id={`v-${groupStartV}`}>
+                <div
+                  className={`words-text-card ${currentCompact ? '' : 'shadow-sm card'} ${selectionClass}`}
+                  onClick={() => handleVerseSelectRange(groupStartV, groupEndV)}
+                  style={{ cursor: 'pointer', transition: 'all 0.2s ease' }}
+                >
+                  <div
+                    className="card-body rounded col-12"
+                    ref={el => {
+                      for (let k = 0; k < groupVerses.length; k++) {
+                        itemsRef3.current[i + k] = el;
+                      }
+                    }}
+                    style={rangeHighlightColor ? { backgroundColor: rangeHighlightColor, color: '#333' } : {}}
+                  >
+                    <div className="d-flex flex-row row-col-3 g-2 text-break">
+                      <div className={`col text-left words-text fs-${currentFontSize}`}>
+                        {groupVerses.map((v, idx) => (
+                          <Fragment key={v.v}>
+                            <span className="verse-num-wrapper">
+                              {renderVerseIndicators(Number(v.v), { ...groupKey, isFirst: idx === 0, groupVerses: groupVerses.map(gv => Number(gv.v)) })}
+                              <Link
+                                className={`text-decoration-none fw-bold words-text fs-${currentFontSize}`}
+                                to={`/${params.book}/${params.chapter}/${v.v}`}
+                                style={rangeHighlightColor ? { color: '#333' } : {}}
+                              >
+                                {v.v}.
+                              </Link>
+                            </span>
+                            {' '}{v.t}{' '}
+                          </Fragment>
+                        ))}
+                      </div>
                     </div>
-                    <div className={`words-text-player ${currentCompact ? 'd-none' : ''} col-auto text-right ml-auto my-auto`}>
-                      {(() => {
-                        let td = [];
-                        if (('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) && navigator.onLine) {
-                          td.push(
-                            <div key="speak-btn" style={{ "position": "relative", "marginRight": "-35px" }} className="arrowbutton card rounded-circle">
-                              <a ref={el => itemsRef2.current[i] = el} onClick={() => speakcontent(chap, i, itemsRef, itemsRef2, itemsRef3, i, false)} className="btn btn-small rounded-circle fw-bold arrowbutton">
-                                <img ref={el => itemsRef.current[i] = el} src="/assets/images/play.svg" width="16px" height="16px" alt="play" />
-                              </a>
-                            </div>
-                          );
-                        }
-                        td.push(
-                          <div key="copy-btn" style={{ "position": "relative", "marginRight": "-35px" }} className="arrowbutton card rounded-circle">
-                            <a ref={el => itemsRef2.current[`c-${i}`] = el} onClick={() => copyToClipBoard(`${verseData.t} (${chaptername} ${params.chapter}:${verseData.v})`, i, itemsRef, itemsRef2)} className="btn btn-small rounded-circle fw-bold arrowbutton">
-                              <img ref={el => itemsRef.current[`c-${i}`] = el} src="/assets/images/clipboard.svg" width="16px" height="16px" alt="copy" />                            </a>
-                          </div>
-                        );
-                        return td;
-                      })()}
-                    </div>
+                    {renderCrossReferences(groupCrossReferences, i)}
                   </div>
-
-                  {/* Call the reusable function to render cross-references */}
-                  {renderCrossReferences(verseCrossReferences, i)}
-                  
                 </div>
               </div>
-            </div>
-          );
+            );
+            i = nextIdx - 1;
+
+          } else {
+            // SINGLE VERSE CARD
+            const highlightColor = getVerseHighlightColor(verseNum);
+            const verseCrossReferences = Array.isArray(crossRefData) ? crossRefData.filter(cr => cr.c == params.chapter && cr.v == verseData.v) : [];
+
+            // Visual Merging Logic (Selection-based)
+            const nextHeadingInfo = headingsData?.find(h => h.c == params.chapter && h.v == (verseNum + 1));
+            const isPrevSelected = !headingInfo && isVerseSelected(verseNum - 1) && (i > 0 && Number(currentChapterVerses[i - 1].v) === verseNum - 1);
+            const isNextSelected = !nextHeadingInfo && isVerseSelected(verseNum + 1) && (i < currentChapterVerses.length - 1 && Number(currentChapterVerses[i + 1].v) === verseNum + 1);
+
+            let selectionClass = isSelected ? 'verse-selected' : '';
+            if (isSelected) {
+              if (isPrevSelected) selectionClass += ' connected-top';
+              if (isNextSelected) selectionClass += ' connected-bottom';
+            }
+
+            const wrapperMarginClass = (isSelected && isNextSelected) ? 'col mb-0 pushdata' : 'col mb-2 pushdata';
+
+            finalContent.push(
+              <div key={`v-${verseData.v}`} className={wrapperMarginClass} id={`v-${verseData.v}`}>
+                <div
+                  className={`words-text-card ${currentCompact ? '' : 'shadow-sm card'} ${selectionClass}`}
+                  data-theme={currentTheme}
+                  onClick={() => handleVerseSelect(verseNum)}
+                  style={{
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                  }}
+                >
+                  <div
+                    className="card-body rounded col-12"
+                    ref={el => itemsRef3.current[i] = el}
+                    style={highlightColor ? { backgroundColor: highlightColor, color: '#333' } : {}}
+                  >
+                    <div className="d-flex flex-row row-col-3 g-2 text-break">
+                      <div className={`col text-left words-text fs-${currentFontSize}`}>
+                        <span className="verse-num-wrapper">
+                          {renderVerseIndicators(verseNum)}
+                          <Link
+                            className={`text-decoration-none fw-bold words-text fs-${currentFontSize}`}
+                            to={`/${params.book}/${params.chapter}/${verseData.v}`}
+                            onClick={(e) => e.stopPropagation()}
+                            style={highlightColor ? { color: '#333' } : {}}
+                          >
+                            {verseData.v}.
+                          </Link>
+                        </span> {verseData.t}
+                      </div>
+                    </div>
+                    {renderCrossReferences(verseCrossReferences, i)}
+                  </div>
+                </div>
+              </div>
+            );
+          }
         }
       }
       setCards(finalContent);
     }
-  }, [bibleData, titlesData, headingsData, crossRefData, introData, activeCrossReference, location, expandedReferences]);
+  }, [bibleData, titlesData, headingsData, crossRefData, introData, activeCrossReference, location, expandedReferences, selectedVerses, chapterUserData, isUserDataLoaded, currentTheme]);
+
+  // Separate effect for History logging to avoid re-logging on local state updates
+  useEffect(() => {
+    if (params.chapter !== 'info' && bibleData && bibleData.length > 0) {
+      // Only log if we have data for this chapter
+      const currentVerses = bibleData.filter(obj => Number(obj.b) == params.book && Number(obj.c) == params.chapter);
+      if (currentVerses.length === 0) return;
+
+      addToHistory(params.book, params.chapter);
+
+      if (params.verse) {
+        const [startV, endV] = parseVerseRange(params.verse);
+        const verseObj = currentVerses.find(v => Number(v.v) === startV);
+        if (verseObj) {
+          addToHistory(
+            params.book,
+            params.chapter,
+            startV,
+            endV !== startV ? endV : null
+          );
+        }
+      }
+    }
+  }, [params.book, params.chapter, params.verse, bibleData]);
 
 
   useEffect(() => {
     if (highlightedElementsRef.current.timer) {
       clearTimeout(highlightedElementsRef.current.timer);
     }
-    if (highlightedElementsRef.current.verse) {
+    if (highlightedElementsRef.current.verse && highlightedElementsRef.current.isTemporary) {
       highlightedElementsRef.current.verse.style.backgroundColor = '';
       highlightedElementsRef.current.verse.style.color = '';
     }
     if (highlightedElementsRef.current.button) {
       highlightedElementsRef.current.button.style.backgroundColor = '';
     }
-    highlightedElementsRef.current = { verse: null, button: null, timer: null };
+    highlightedElementsRef.current = { verse: null, button: null, timer: null, isTemporary: false };
 
     const executionTimer = setTimeout(() => {
+      const currentScrollKey = location.pathname;
+
       if (params.verse && bibleData) {
         const [startVerse, endVerse] = parseVerseRange(params.verse);
         let verseIndex = parseInt(endVerse) - 1;
         const verseElement = itemsRef3.current[verseIndex] || itemsRef3.current[itemsRef3.current.length - 1];
 
         if (verseIndex >= 0 && verseElement) {
-          const speakButtonContainer = itemsRef2.current[verseIndex];
-
-          verseElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          verseElement.style.backgroundColor = '#faebd7';
-          verseElement.style.color = '#000';
-
-          if (speakButtonContainer) {
-            speakButtonContainer.style.backgroundColor = '#ffb380';
+          // Check if we already scrolled for this location to prevent re-scrolling on selection changes
+          if (lastScrolledKeyRef.current !== currentScrollKey) {
+            verseElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            lastScrolledKeyRef.current = currentScrollKey;
           }
+
+          // Check for any permanent highlight in the range (since it might be a grouped card)
+          // Only treat as permanent highlight if ALL verses in the range share the SAME highlight
+          let permanentHighlightColor = null;
+          const distinctHighlights = new Set();
+
+          for (let v = startVerse; v <= endVerse; v++) {
+            const h = getVerseHighlightColor(v);
+            distinctHighlights.add(h);
+          }
+
+          // If we found exactly one highlight color and it is not null/undefined
+          if (distinctHighlights.size === 1) {
+            const val = distinctHighlights.values().next().value;
+            if (val) permanentHighlightColor = val;
+          }
+
+          if (!permanentHighlightColor) {
+            verseElement.style.backgroundColor = '#faebd7';
+            verseElement.style.color = '#000';
+            highlightedElementsRef.current.isTemporary = true;
+          } else {
+            // Restore permanent highlight if it was cleared by cleanup
+            verseElement.style.backgroundColor = permanentHighlightColor;
+            verseElement.style.color = '#333';
+            highlightedElementsRef.current.isTemporary = false;
+          }
+
           highlightedElementsRef.current.verse = verseElement;
-          highlightedElementsRef.current.button = speakButtonContainer;
         }
       }
-      else if (!params.verse && bibleData ) { 
-        const firstVerseElement = itemsRef3.current[0];
+      else if (!params.verse && bibleData) {
+        // Scroll to top if new location
+        if (lastScrolledKeyRef.current !== currentScrollKey) {
+          const firstVerseElement = itemsRef3.current[0];
 
-        if (firstVerseElement && params.book == '19') { // for psalms only we need to move to first verse in the chapter
-          firstVerseElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        } else{
-          window.scrollTo({ top: 0, behavior: 'smooth' });
+          if (firstVerseElement && params.book == '19') { // for psalms only we need to move to first verse in the chapter
+            firstVerseElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          } else {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }
+          lastScrolledKeyRef.current = currentScrollKey;
         }
       }
     }, 1);
 
     return () => clearTimeout(executionTimer);
-  }, [bibleData, location]);
+  }, [bibleData, location, cards, params.verse, params.book]);
 
   function titlenav(allTitles) {
     const r = allTitles.filter(obj => obj.n == params.book);
@@ -514,24 +987,167 @@ function Content({ book, chapter, verse }) {
     );
   }
 
+  const getNoteReference = (note) => {
+    if (!titlesData || !note) return "...";
+
+    // Parse book and chapter from the compact ID
+    let bookNum, chapterNum, versesArray;
+    if (note.id) {
+      const parsed = parseVerseId(note.id);
+      bookNum = parsed.book;
+      chapterNum = parsed.chapter;
+      versesArray = note.v || parsed.verses || [];
+    } else {
+      // Fallback for new notes without ID yet
+      bookNum = params.book;
+      chapterNum = params.chapter;
+      versesArray = note.v || [];
+    }
+
+    const titleObj = titlesData.find(t => String(t.n) == String(bookNum));
+    const bookName = titleObj
+      ? (!getLanguage() || getLanguage() === "Malayalam" ? titleObj.bm : titleObj.be)
+      : `Book ${bookNum}`;
+
+    const rangeStr = formatVerseRange(versesArray);
+    return `${bookName} ${chapterNum}:${rangeStr}`;
+  };
+
   return (
-    <section className="py-2 mb-5">
-      <div className="container-fluid">
-        <div className="row">
-          <div className="col-lg-12">
-            <section id="scroll-target">
-              <div className="container my-2">
-                <div className="row row-cols-1 justify-content-center">
-                  {title}
-                  {cards}
-                  {navigation}
+    <>
+      <section className="py-2 mb-5">
+        <div className="container-fluid">
+          <div className="row">
+            <div className="col-lg-12">
+              <section id="scroll-target">
+                <div className="container my-2">
+                  <div className="row row-cols-1 justify-content-center">
+                    {title}
+                    {cards}
+                    {navigation}
+                  </div>
                 </div>
-              </div>
-            </section>
+              </section>
+            </div>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
+
+      {/* Note Popover Modal / Interactive Tooltip */}
+      {activeNotePopover && (
+        <NoteEditor
+          popover={activeNotePopover}
+          content={editingNoteContent}
+          reference={getNoteReference(activeNotePopover.note)}
+          onContentChange={setEditingNoteContent}
+          onClose={() => {
+            setActiveNotePopover(null);
+            setIsEditingNote(false);
+          }}
+          onDelete={async () => {
+            await removeNote(activeNotePopover.note.id);
+            setActiveNotePopover(null);
+            setIsEditingNote(false);
+            setRefreshKey(prev => prev + 1);
+          }}
+          onSave={async () => {
+            const note = activeNotePopover.note;
+            const trimmedContent = editingNoteContent.trim();
+
+            if (trimmedContent) {
+              // Parse book/chapter from ID for existing notes, or use params for new
+              let bookNum, chapterNum, versesArray;
+              if (note.id) {
+                const parsed = parseVerseId(note.id);
+                bookNum = parsed.book;
+                chapterNum = parsed.chapter;
+              } else {
+                bookNum = params.book;
+                chapterNum = params.chapter;
+              }
+              versesArray = activeNotePopover.selectedVerses || note.v || [];
+
+              const startVerse = versesArray[0] || 1;
+              const endVerse = versesArray[versesArray.length - 1] || startVerse;
+
+              await addNote(
+                bookNum,
+                chapterNum,
+                startVerse,
+                endVerse,
+                trimmedContent,
+                versesArray
+              );
+            } else if (!activeNotePopover.isNew) {
+              // Delete note if empty (only for existing notes)
+              await removeNote(note.id);
+            }
+            setActiveNotePopover(null);
+            setIsEditingNote(false);
+            setRefreshKey(prev => prev + 1);
+            handleClearSelection();
+          }}
+        />
+      )}
+
+      {/* Verse Action Toolbar */}
+      {selectedVerses.length > 0 && (
+        <VerseActionToolbar
+          selectedVerses={selectedVerses}
+          book={params.book}
+          chapter={params.chapter}
+          chapterName={chaptername}
+          bibleData={bibleData}
+          onClose={handleClearSelection}
+          onActionComplete={handleActionComplete}
+          onOpenNote={handleOpenNote}
+        />
+      )}
+
+      {/* Global Hover Tooltip */}
+      {/* Global Hover Tooltip */}
+      {/* Global Hover Tooltip */}
+      {/* Global Hover Tooltip */}
+      {hoverNoteTooltip && (
+        <GlobalNoteTooltip
+          tooltip={hoverNoteTooltip}
+          reference={getNoteReference(hoverNoteTooltip.note)}
+          onClose={() => setHoverNoteTooltip(null)}
+          onMouseEnter={() => {
+            if (tooltipTimeoutRef.current) {
+              clearTimeout(tooltipTimeoutRef.current);
+              tooltipTimeoutRef.current = null;
+            }
+          }}
+          onMouseLeave={() => {
+            tooltipTimeoutRef.current = setTimeout(() => {
+              setHoverNoteTooltip(null);
+            }, 300);
+          }}
+          onDelete={async () => {
+            await removeNote(hoverNoteTooltip.note.id);
+            setHoverNoteTooltip(null);
+            setRefreshKey(p => p + 1);
+          }}
+          onEdit={() => {
+            setHoverNoteTooltip(null);
+            setActiveNotePopover({
+              verseNum: hoverNoteTooltip.note.v ? hoverNoteTooltip.note.v[0] : 1,
+              note: hoverNoteTooltip.note,
+              isNew: false,
+              selectedVerses: hoverNoteTooltip.note.v || [],
+              x: hoverNoteTooltip.x,
+              y: hoverNoteTooltip.y + 20,
+            });
+            setEditingNoteContent(hoverNoteTooltip.note.n || '');
+            setIsEditingNote(true);
+          }}
+          theme={currentTheme}
+        />
+      )}
+
+
+    </>
   );
 }
 

@@ -3,45 +3,40 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from "react"
 import axios from "axios";
 import { siteConfig, getBible } from "../../config/siteConfig";
 import { getTranslation } from '../../config/SiteTranslations';
-import { speaksearch, getCacheData, addDataIntoCache, copyToClipBoard, getLanguage } from '../../config/Utils';
+import { getCacheData, addDataIntoCache, getLanguage } from '../../config/Utils';
+import { copyVerseText } from '../../config/VerseStorage';
 import Topdown from "../../features/Topdown";
+import VerseActionToolbar from "../VerseActionToolbar";
 
 // Optimization: By creating a memoized component for the search result item,
 // React can skip re-rendering an item if its props haven't changed.
 // This is highly effective when rendering a large list of items.
-const MemoizedSearchResultItem = React.memo(({ item, index, q, title, onSpeak, onCopy, itemRefs }) => {
+const MemoizedSearchResultItem = React.memo(({ item, index, q, title, onCopy, copyStates, isSelected, onSelect }) => {
   const splited = item.t.replace(new RegExp(q, "gi"), (match) => `<span class='text-dark' style='background-color: #fff952;'>${match}</span>`);
   const currentFontSize = localStorage.getItem('fontSize');
   const currentCompact = localStorage.getItem('compact');
   const bookTitle = !getLanguage() || getLanguage() === "Malayalam" ? title.bm : title.be;
+  const copyState = copyStates[index];
 
   return (
     <div className={`col mb-2 pushdata`} id={`v-${item.v}`}>
-      <div className={`words-text-card ${currentCompact ? '' : 'shadow-sm card'}`}>
+      <div
+        className={`words-text-card ${currentCompact ? '' : 'shadow-sm card'} ${isSelected ? 'border-primary' : ''}`}
+        style={isSelected ? { backgroundColor: 'rgba(13, 110, 253, 0.1)', cursor: 'pointer' } : { cursor: 'pointer' }}
+        onClick={() => onSelect(item)}
+      >
         <span className={`words-text-player position-absolute mt-3 translate-middle badge rounded-pill ${currentCompact ? 'd-none' : ''}`} style={{ backgroundColor: 'rgb(238, 238, 238)' }}>
           <a className="link-primary fw-bold small text-decoration-none">{index + 1}</a>
         </span>
-        <div className="card-body col-12" ref={el => itemRefs.itemsRef3.current[index] = el}>
+        <div className="card-body col-12">
           <div className="row row-col-2 g-2">
             <div className={`col text-left words-text fs-${currentFontSize}`}>
               <div dangerouslySetInnerHTML={{ __html: splited }} />
-              <Link className="link-dark small text-decoration-none" to={`/${item.b}/${item.c}/${item.v}`}>
+              <Link className="link-dark small text-decoration-none" to={`/${item.b}/${item.c}/${item.v}`} onClick={(e) => e.stopPropagation()}>
                 <div className="fw-bold text-primary">({bookTitle} {item.c}:{item.v})</div>
               </Link>
             </div>
-            <div className={`words-text-player ${currentCompact ? 'd-none' : ''} col-auto text-right ml-auto my-auto`}>
-              {('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) && navigator.onLine && (
-                <div style={{ "position": "relative", "marginRight": "-35px" }} className="arrowbutton card rounded-circle">
-                  <a ref={el => itemRefs.itemsRef2.current[index] = el} onClick={() => onSpeak(item.t, index)} className="btn btn-small rounded-circle fw-bold arrowbutton">
-                    <img ref={el => itemRefs.itemsRef.current[index] = el} src="/assets/images/play.svg" width="16px" height="16px" alt="Speak" />
-                  </a>
-                </div>
-              )}
-              <div style={{ "position": "relative", "marginRight": "-35px" }} className="arrowbutton card rounded-circle">
-                <a ref={el => itemRefs.itemsRef2.current["c-" + index] = el} onClick={() => onCopy(`${item.t} (${bookTitle} ${item.c}:${item.v})`, index)} className="btn btn-small rounded-circle fw-bold arrowbutton">
-                  <img ref={el => itemRefs.itemsRef.current["c-" + index] = el} src="/assets/images/clipboard.svg" width="16px" height="16px" alt="Copy" />
-                </a>
-              </div>
+            <div className={`words-text-player d-none col-auto text-right ml-auto my-auto`}>
             </div>
           </div>
         </div>
@@ -62,11 +57,28 @@ function Search() {
   const [bibleData, setBibleData] = useState([]);
   const [titleData, setTitleData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [copyStates, setCopyStates] = useState({}); // Track copy button states
+  const [selectedItems, setSelectedItems] = useState([]); // Track selected verses
 
-  // Refs remain the same for interacting with DOM elements directly.
-  const itemsRef = useRef([]);
-  const itemsRef2 = useRef([]);
-  const itemsRef3 = useRef([]);
+  const handleVerseSelect = useCallback((item) => {
+    setSelectedItems(prev => {
+      const exists = prev.find(i => i.b == item.b && i.c == item.c && i.v == item.v);
+      if (exists) {
+        return prev.filter(i => i.b !== item.b || i.c !== item.c || i.v !== item.v);
+      } else {
+        const titleObj = titleData.find(t => String(t.n) == String(item.b));
+        const bookTitle = titleObj
+          ? (!getLanguage() || getLanguage() === "Malayalam" ? titleObj.bm : titleObj.be)
+          : `Book ${item.b}`;
+        return [...prev, { ...item, bookName: bookTitle }];
+      }
+    });
+  }, [titleData]);
+
+  const handleClearSelection = useCallback(() => {
+    setSelectedItems([]);
+  }, []);
+
 
   const q = searchParams.get("q") || "";
   const pval = Number.isInteger(parseInt(searchParams.get("p"))) ? parseInt(searchParams.get("p")) : 1;
@@ -177,12 +189,18 @@ function Search() {
     return <div className="text-center fw-lighter mb-3 text-secondary">Showing the {range} of {r_length} verses matching the search word {q ? `"${q}"` : ""}</div>;
   }, [filteredResults.length, pval, rangevalue]);
 
-  const onSpeak = useCallback((text, index) => {
-    speaksearch(text, index, itemsRef, itemsRef2, itemsRef3)
-  }, []); // Empty dependency array means these functions are created only once.
+  const onCopy = useCallback(async (text, reference, index) => {
+    const result = await copyVerseText(text, reference);
+    setCopyStates(prev => ({ ...prev, [index]: result.success ? 'success' : 'error' }));
 
-  const onCopy = useCallback((text, index) => {
-    copyToClipBoard(text, index, itemsRef, itemsRef2)
+    // Reset state after 2 seconds
+    setTimeout(() => {
+      setCopyStates(prev => {
+        const newState = { ...prev };
+        delete newState[index];
+        return newState;
+      });
+    }, 2000);
   }, []);
 
   // Optimization: Memoize the generated list of cards.
@@ -198,6 +216,8 @@ function Search() {
       const title = titleData.find(t => String(t.n) == String(item.b));
       if (!title) return null; // Handle case where title might not be found
 
+      const isActive = selectedItems.some(s => s.b == item.b && s.c == item.c && s.v == item.v);
+
       return (
         <MemoizedSearchResultItem
           key={`${item.b}-${item.c}-${item.v}`}
@@ -205,13 +225,14 @@ function Search() {
           index={index}
           q={q}
           title={title}
-          onSpeak={onSpeak}
           onCopy={onCopy}
-          itemRefs={{ itemsRef, itemsRef2, itemsRef3 }}
+          copyStates={copyStates}
+          isSelected={isActive}
+          onSelect={handleVerseSelect}
         />
       );
     });
-  }, [filteredResults, pval, rangevalue, q, titleData, onSpeak, onCopy]);
+  }, [filteredResults, pval, rangevalue, q, titleData, onCopy, copyStates, selectedItems, handleVerseSelect]);
 
 
   // Optimization: Memoize the pagination component.
@@ -261,33 +282,44 @@ function Search() {
   }, [filteredResults.length, rangevalue, pval, q, navigate]);
 
   return (
-    <section className="py-2 mb-5">
-      <div className="container">
-        <div className="row">
-          <div className="col-lg-12">
-            <section id="scroll-target">
-              <div className="container my-2">
-                <div className="row row-cols-1 justify-content-center">
-                  {resultCountMessage}
-                  {isLoading ? (
-                    <div className="spinner-grow text-center" role="status">
-                      <span className="visually-hidden">Loading...</span>
-                    </div>
-                  ) : (
-                    <>
-                      {cards}
-                    </>
-                  )}
-                  <div></div>
-                  {isLoading || navigation}
+    <>
+      <section className="py-2 mb-5">
+        <div className="container">
+          <div className="row">
+            <div className="col-lg-12">
+              <section id="scroll-target">
+                <div className="container my-2">
+                  <div className="row row-cols-1 justify-content-center">
+                    {resultCountMessage}
+                    {isLoading ? (
+                      <div className="spinner-grow text-center" role="status">
+                        <span className="visually-hidden">Loading...</span>
+                      </div>
+                    ) : (
+                      <>
+                        {cards}
+                      </>
+                    )}
+                    <div></div>
+                    {isLoading || navigation}
+
+                  </div>
+                  <Topdown />
                 </div>
-                <Topdown />
-              </div>
-            </section>
+              </section>
+            </div>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
+
+      {selectedItems.length > 0 && (
+        <VerseActionToolbar
+          explicitVerses={selectedItems}
+          onClose={handleClearSelection}
+          onActionComplete={handleClearSelection}
+        />
+      )}
+    </>
   );
 }
 

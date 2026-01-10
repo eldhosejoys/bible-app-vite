@@ -1,0 +1,253 @@
+.global-note-tooltip {
+    position: fixed;
+    background-color: var(--bs-body-bg, #1a1a2e);
+    color: var(--bs-body-color, #fff);
+    border-radius: 12px;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+    z-index: 11000;
+    border: 1px solid var(--bs-border-color, rgba(255, 255, 255, 0.15));
+    pointer-events: auto;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: opacity 0.2s ease;
+
+    /* Desktop Positioning Defaults */
+    left: var(--tooltip-x);
+    top: var(--tooltip-y);
+    transform: translate(-50%, calc(-100% - 14px));
+    width: max-content;
+    max-width: 300px;
+    min-width: 200px;
+    opacity: 1;
+    visibility: visible;
+}
+
+.global-note-tooltip.show-below {
+    transform: translate(-50%, 14px);
+}
+
+.tooltip-content {
+    padding: 12px 16px;
+    white-space: pre-wrap;
+    font-weight: 500;
+}
+
+.tooltip-verse-context {
+    padding: 10px 16px;
+    font-size: 0.75rem;
+    font-style: italic;
+    color: var(--bs-secondary-color, rgba(255, 255, 255, 0.5));
+    background: var(--bs-tertiary-bg, rgba(0, 0, 0, 0.2));
+    border-bottom: 1px solid var(--bs-border-color, rgba(255, 255, 255, 0.05));
+    border-left: 3px solid rgba(141, 158, 255, 0.4);
+    line-height: 1.4;
+}
+
+.tooltip-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: var(--bs-tertiary-bg, rgba(0, 0, 0, 0.2));
+    border-top: 1px solid var(--bs-border-color, rgba(255, 255, 255, 0.08));
+}
+
+.action-btn {
+    border: none;
+    background: transparent;
+    color: var(--bs-secondary-color, rgba(255, 255, 255, 0.7));
+    font-size: 0.8rem;
+    padding: 4px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    transition: all 0.2s;
+}
+
+.action-btn:hover {
+    background: var(--bs-secondary-bg, rgba(255, 255, 255, 0.1));
+    color: var(--bs-body-color, #fff);
+}
+
+.action-btn.delete-btn:hover {
+    background: rgba(220, 53, 69, 0.2);
+    color: #ff6b6b;
+}
+
+.action-btn.edit-btn:hover {
+    background: rgba(141, 158, 255, 0.2);
+    color: rgb(141, 158, 255);
+}
+
+.tooltip-arrow {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 8px;
+    border-style: solid;
+    border-color: var(--bs-body-bg, #1a1a2e) transparent transparent transparent;
+}
+
+.show-below .tooltip-arrow {
+    top: auto;
+    bottom: 100%;
+    border-color: transparent transparent var(--bs-body-bg, #1a1a2e) transparent;
+}
+
+.tooltip-mobile-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 10999;
+    display: none;
+}
+
+/* Mobile Adjustments */
+@media (max-width: 576px) {
+    .tooltip-mobile-backdrop {
+        display: block;
+    }
+}
+
+.verse-selected {
+    background: linear-gradient(135deg, rgba(141, 158, 255, 0.15) 0%, rgba(141, 158, 255, 0.08) 100%) !important;
+    border-left: 3px solid rgb(141, 158, 255) !important;
+    border-radius: 4px !important;
+    margin-left: -8px !important;
+    padding-left: 8px !important;
+    transition: all 0.2s ease !important;
+}
+
+.words-text-card:hover {
+    transform: translateY(-1px);
+}
+
+.verse-num-wrapper {
+    position: relative;
+    display: inline-block;
+    padding-top: 1.2rem;
+    /* Make room for the indicators */
+    margin-top: -0.5rem;
+    /* Pull back slightly to keep alignment */
+}
+
+.verse-indicators-container {
+    position: absolute;
+    top: 0;
+    /* Place at the top of the wrapper's padding */
+    left: 0;
+    display: flex;
+    gap: 4px;
+    pointer-events: auto;
+    z-index: 2;
+}
+
+/* Ensure the card body has enough room for indicators on the first line */
+.words-text-card .card-body {
+    padding-top: 1rem !important;
+}
+
+.note-indicator-icon {
+    font-size: 0.8rem;
+    line-height: 1;
+    padding: 3px 5px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+[data-bs-theme="light"] .note-indicator-icon {
+    background: #e9ecef;
+    /* Slightly darker gray for better visibility */
+    border: 1px solid #999;
+    /* Stronger border */
+    color: #333;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+[data-bs-theme="light"] .note-indicator-icon:hover {
+    background-color: rgba(141, 158, 255, 0.2);
+    border-color: #4e5dce;
+    /* Darker blue border on hover */
+    color: #000;
+}
+
+.note-indicator-icon:hover {
+    transform: translateY(-2px);
+    background-color: rgba(141, 158, 255, 0.2);
+    border-color: rgba(141, 158, 255, 0.4);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* Merged Verse Selection Styling */
+.verse-selected.connected-top {
+    border-top-left-radius: 0 !important;
+    border-top-right-radius: 0 !important;
+    border-top: 1px dashed rgba(141, 158, 255, 0.2) !important;
+}
+
+.verse-selected.connected-bottom {
+    border-bottom-left-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+    border-bottom: none !important;
+}
+
+/* Light Mode Overrides for Tooltip */
+.global-note-tooltip[data-theme="light"] {
+    background-color: #ffffff;
+    color: #333333;
+    border-color: rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.global-note-tooltip[data-theme="light"] .tooltip-verse-context {
+    background-color: #f8f9fa;
+    color: #666;
+    border-bottom: 1px solid #eee;
+    border-left-color: #8D9EFF;
+}
+
+.global-note-tooltip[data-theme="light"] .tooltip-actions {
+    background-color: #f8f9fa;
+    border-top: 1px solid #eee;
+}
+
+.global-note-tooltip[data-theme="light"] .action-btn {
+    color: #666;
+}
+
+.global-note-tooltip[data-theme="light"] .action-btn:hover {
+    background-color: #e9ecef;
+    color: #333;
+}
+
+.global-note-tooltip[data-theme="light"] .action-btn.delete-btn:hover {
+    background-color: rgba(220, 53, 69, 0.1);
+    color: #dc3545;
+}
+
+.global-note-tooltip[data-theme="light"] .action-btn.edit-btn:hover {
+    background-color: rgba(141, 158, 255, 0.2);
+    color: #4e5dce;
+}
+
+.global-note-tooltip[data-theme="light"] .tooltip-arrow {
+    border-color: #ffffff transparent transparent transparent;
+}
+
+.global-note-tooltip[data-theme="light"].show-below .tooltip-arrow {
+    border-color: transparent transparent #ffffff transparent;
+}

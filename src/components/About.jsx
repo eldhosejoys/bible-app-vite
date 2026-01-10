@@ -18,7 +18,6 @@ function About() {
   function generateNumberBox() {
     const b = [];
     const headingKeys = Object.keys(siteConfig().headings);
-    console.log("headingKeys:" + headingKeys);
     for (const number of headingKeys) {
       b.push(
         <div className="numberbox" key={number}>
@@ -42,7 +41,7 @@ function About() {
               <p>ഈ വെബ്‌സൈറ്റിൽ നൽകിയിരിക്കുന്ന മലയാളം പരിഭാഷ എടുത്തിരിക്കുന്നത് <a target="_blank" href="http://verseview.info/vv/bible-database/">ഇവിടെ നിന്നാണ്</a>. അതിൽ കണ്ട അക്ഷരത്തെറ്റുകളും മറ്റ് പിശകുകളും തിരുത്തിയാണ് ഇവിടെ പ്രദർശിപ്പിച്ചിരിക്കുന്നത്. ഈ വെബ്സൈറ്റിൻറെ കോഡ് കിട്ടുന്നതിനായി <a target="_blank" href="https://github.com/eldhosejoys/bible-app-vite">ഗിറ്റ്ഹബ് സന്ദർശിക്കുക</a>.</p>
               <p>വാക്യങ്ങൾക്ക് റെഫെറെൻസുകൾ കൊടുത്തിട്ടുണ്ട്. അതിനുള്ള സ്രോതസ്സ് <a target="_blank" href="https://www.openbible.info/labs/cross-references/">ഓപ്പൺബൈബിളിൽ</a> നിന്നാണ് എടുത്തിട്ടുള്ളത്.</p>
               <p>പുസ്തകങ്ങൾക്ക് ശീർഷകങ്ങളും ആമുഖവും മലയാളത്തിൽ കൊടുത്തിട്ടുണ്ട്. അത് സഹായകരമായിരിക്കും എന്ന് പ്രതീഷിക്കുന്നു. ശീർഷകങ്ങളും ആമുഖവും കൊടുത്ത പുസ്തകങ്ങൾ താഴെ കൊടുത്തിരിക്കുന്നു. </p>
-              <p className="container row">{cards}</p>
+              <div className="container row">{cards}</div>
               <p>ഈ <i>/book/chapter/verse</i> ഘടനയിൽ വെബ്സൈറ്റിൽ URL ആയി ഉപയോഗിക്കാനും തിരച്ചിൽ (search) ചെയ്യാനും സാധിക്കുന്നു.</p>
               <p>ഉദാഹരണം: <i>45/6:6-7</i></p>
               <ul>
