@@ -7,6 +7,7 @@ import { getTranslation } from '../config/SiteTranslations';
 import { formatDateTime, getCacheData, addDataIntoCache, getLanguage, formatVerseRange } from '../config/Utils';
 import { siteConfig, getBible } from '../config/siteConfig';
 import axios from 'axios';
+import NoteEditor from './NoteEditor';
 
 function Notes({ inModal = false, onNavigate }) {
     const [notes, setNotes] = useState([]);
@@ -329,40 +330,21 @@ function Notes({ inModal = false, onNavigate }) {
                 )}
             </div>
 
-            {/* Edit Note Modal */}
-            <Modal show={!!editingNote} onHide={() => setEditingNote(null)} centered>
-                <Modal.Header closeButton>
-                    <Modal.Title>Edit Note</Modal.Title>
-                </Modal.Header>
-                <Modal.Body>
-                    {editingNote && (
-                        <>
-                            <div className="mb-3">
-                                <small className="text-muted">{getReference(editingNote)}</small>
-                            </div>
-                            <textarea
-                                className="form-control"
-                                rows={5}
-                                value={editContent}
-                                onChange={(e) => setEditContent(e.target.value)}
-                                autoFocus
-                                style={{
-                                    borderRadius: '12px',
-                                    resize: 'vertical',
-                                }}
-                            />
-                        </>
-                    )}
-                </Modal.Body>
-                <Modal.Footer>
-                    <Button variant="secondary" onClick={() => setEditingNote(null)}>
-                        Cancel
-                    </Button>
-                    <Button variant="primary" onClick={handleSaveEdit}>
-                        Save Changes
-                    </Button>
-                </Modal.Footer>
-            </Modal>
+            {/* Edit Note Editor (Unified with Content page) */}
+            {editingNote && (
+                <NoteEditor
+                    popover={{ isNew: false }} // No x/y means centered
+                    content={editContent}
+                    reference={getReference(editingNote)}
+                    onContentChange={setEditContent}
+                    onClose={() => setEditingNote(null)}
+                    onSave={handleSaveEdit}
+                    onDelete={() => {
+                        handleRemove(editingNote.id);
+                        setEditingNote(null);
+                    }}
+                />
+            )}
         </section>
     );
 }
