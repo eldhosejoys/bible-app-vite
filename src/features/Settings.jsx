@@ -110,7 +110,7 @@ function Settings() {
       const newLanguage = e.target.value;
       setBibleLanguage(newLanguage);
       setLanguage(newLanguage);
-      window.location.reload();
+      window.dispatchEvent(new Event('settingsChange'));
     }
   };
 
@@ -147,7 +147,7 @@ function Settings() {
     } else {
       localStorage.removeItem('showReferences');
     }
-    window.location.reload();
+    window.dispatchEvent(new Event('settingsChange'));
   };
 
   const handleClearCache = async (type) => {

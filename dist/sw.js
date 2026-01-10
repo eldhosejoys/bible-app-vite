@@ -1,5 +1,5 @@
 // Version this cache - increment when you deploy a new build
-const CACHE_VERSION = "v1768039935962";
+const CACHE_VERSION = "v1768040581975";
 const CACHE_NAME = `bible-app-${CACHE_VERSION}`;
 
 // Static assets to pre-cache on install
@@ -7,7 +7,7 @@ const urlsToCache = [
   "/",
   "/index.html",
   // Auto-generated: Vite build assets
-  "/assets/index-8ab5e774.js",
+  "/assets/index-3dc8a486.js",
   "/assets/fonts/fonts.css",
   "/assets/index-eab5e5a2.css",
   "/manifest.json",
@@ -17,6 +17,8 @@ const urlsToCache = [
   "/assets/json/bible.json",
   "/assets/json/eng-bible.json",
   "/assets/json/headings/bibleheadings.json",
+  "/assets/json/abbrevs.json",
+  "/assets/txt/cross_references.txt",
   "/assets/images/ml-bible.webp",
   "/assets/images/writer.png",
   "/assets/images/date.png",
@@ -41,8 +43,6 @@ const urlsToCache = [
 const PROGRESSIVE_CACHE_PATTERNS = {
   // JS and CSS files (including hashed versions)
   assets: /\.(js|css)$/,
-  // Cross-reference JSON files
-  crossRef: /^\/assets\/json\/books-cross\/\d+\.json$/,
 };
 
 // Font files pattern for progressive caching (now self-hosted, so this is not needed)
@@ -123,8 +123,7 @@ self.addEventListener("fetch", (event) => {
           // Determine if we should cache this response
           const shouldCache =
             urlsToCache.includes(requestPath) ||
-            PROGRESSIVE_CACHE_PATTERNS.assets.test(requestPath) ||
-            PROGRESSIVE_CACHE_PATTERNS.crossRef.test(requestPath);
+            PROGRESSIVE_CACHE_PATTERNS.assets.test(requestPath);
 
           if (shouldCache) {
             const responseClone = response.clone();
@@ -137,12 +136,7 @@ self.addEventListener("fetch", (event) => {
         })
         .catch(() => {
           // Offline and not cached
-          if (PROGRESSIVE_CACHE_PATTERNS.crossRef.test(requestPath)) {
-            // Return empty array for cross-references
-            return new Response(JSON.stringify([]), {
-              headers: { 'Content-Type': 'application/json' }
-            });
-          }
+
           // For navigation requests, return the cached homepage
           if (event.request.mode === 'navigate') {
             return caches.match('/');

@@ -21,6 +21,7 @@ import {
   getHighlightsForChapter,
   onVerseStorageChange,
 } from '../config/VerseStorage';
+import { getCrossReferencesForBook } from '../config/CrossReferenceLoader';
 import CrossReferenceVerse from "./CrossReferenceVerse";
 import VerseActionToolbar from "./VerseActionToolbar";
 import GlobalNoteTooltip from "./GlobalNoteTooltip";
@@ -225,15 +226,8 @@ function Content({ book, chapter, verse }) {
   };
 
   const getCrossRefs = async () => {
-    if (areReferencesEnabled() && siteConfig().cross_reference_path) {
-      const url = `${siteConfig().cross_reference_path}${params.book}.json`;
-      const cached = await getCacheData('cache', url);
-      if (cached) return cached;
-      try {
-        const response = await axios.get(url);
-        addDataIntoCache('cache', url, response.data);
-        return response.data;
-      } catch (error) { return null; }
+    if (areReferencesEnabled()) {
+      return await getCrossReferencesForBook(params.book);
     }
     return null;
   };
@@ -308,7 +302,7 @@ function Content({ book, chapter, verse }) {
     };
 
     fetchData();
-  }, [location]); // Depend on location/params only
+  }, [location, settingsTick]);
 
   // --- UI RENDERING HELPERS ---
   const renderCrossReferences = (references, verseIndex) => {
