@@ -597,7 +597,7 @@ function Content({ book, chapter, verse }) {
             if (isNextSelected) selectionClass += ' connected-bottom';
           }
 
-          const wrapperMarginClass = (isGroupSelected && isNextSelected) ? 'col mb-0 pushdata' : 'col mb-2 pushdata';
+          const wrapperMarginClass = (isGroupSelected && isNextSelected) ? 'col mb-0 pushdata' : `col ${currentCompact ? 'mb-1' : 'mb-2'} pushdata`;
 
           finalContent.push(
             <div key={`url-group-${startVerse}-${endVerse}`} className={wrapperMarginClass} id={`v-${startVerse}`}>
@@ -622,10 +622,11 @@ function Content({ book, chapter, verse }) {
                       {/* Map over the verses in the range to display them individually */}
                       {versesInRange.map((verse, idx) => {
                         const vHighlight = !rangeHighlightColor ? getVerseHighlightColor(Number(verse.v)) : null;
+                        const indicators = renderVerseIndicators(Number(verse.v), { type: 'url', isFirst: idx === 0, groupVerses: versesInRange.map(v => Number(v.v)) });
                         return (
                           <Fragment key={verse.v}>
-                            <span className="verse-num-wrapper">
-                              {renderVerseIndicators(Number(verse.v), { type: 'url', isFirst: idx === 0, groupVerses: versesInRange.map(v => Number(v.v)) })}
+                            <span className={`verse-num-wrapper ${indicators ? 'has-indicators' : ''}`}>
+                              {indicators}
                               <Link
                                 className={`text-decoration-none fw-bold words-text fs-${currentFontSize}`}
                                 to={`/${params.book}/${params.chapter}/${verse.v}`}
@@ -723,7 +724,7 @@ function Content({ book, chapter, verse }) {
               if (isNextSelected) selectionClass += ' connected-bottom';
             }
 
-            const wrapperMarginClass = (isGroupSelected && isNextSelected) ? 'col mb-0 pushdata' : 'col mb-2 pushdata';
+            const wrapperMarginClass = (isGroupSelected && isNextSelected) ? 'col mb-0 pushdata' : `col ${currentCompact ? 'mb-1' : 'mb-2'} pushdata`;
 
             finalContent.push(
               <div key={`group-${groupKey.type}-${groupKey.id}`} className={wrapperMarginClass} id={`v-${groupStartV}`}>
@@ -743,21 +744,24 @@ function Content({ book, chapter, verse }) {
                   >
                     <div className="d-flex flex-row row-col-3 g-2 text-break">
                       <div className={`col text-left words-text fs-${currentFontSize}`}>
-                        {groupVerses.map((v, idx) => (
-                          <Fragment key={v.v}>
-                            <span className="verse-num-wrapper">
-                              {renderVerseIndicators(Number(v.v), { ...groupKey, isFirst: idx === 0, groupVerses: groupVerses.map(gv => Number(gv.v)) })}
-                              <Link
-                                className={`text-decoration-none fw-bold words-text fs-${currentFontSize}`}
-                                to={`/${params.book}/${params.chapter}/${v.v}`}
-                                style={rangeHighlightColor ? { color: '#333' } : {}}
-                              >
-                                {v.v}.
-                              </Link>
-                            </span>
-                            {' '}{v.t}{' '}
-                          </Fragment>
-                        ))}
+                        {groupVerses.map((v, idx) => {
+                          const indicators = renderVerseIndicators(Number(v.v), { ...groupKey, isFirst: idx === 0, groupVerses: groupVerses.map(gv => Number(gv.v)) });
+                          return (
+                            <Fragment key={v.v}>
+                              <span className={`verse-num-wrapper ${indicators ? 'has-indicators' : ''}`}>
+                                {indicators}
+                                <Link
+                                  className={`text-decoration-none fw-bold words-text fs-${currentFontSize}`}
+                                  to={`/${params.book}/${params.chapter}/${v.v}`}
+                                  style={rangeHighlightColor ? { color: '#333' } : {}}
+                                >
+                                  {v.v}.
+                                </Link>
+                              </span>
+                              {' '}{v.t}{' '}
+                            </Fragment>
+                          );
+                        })}
                       </div>
                     </div>
                     {renderCrossReferences(groupCrossReferences, i)}
@@ -783,7 +787,9 @@ function Content({ book, chapter, verse }) {
               if (isNextSelected) selectionClass += ' connected-bottom';
             }
 
-            const wrapperMarginClass = (isSelected && isNextSelected) ? 'col mb-0 pushdata' : 'col mb-2 pushdata';
+            const wrapperMarginClass = (isSelected && isNextSelected) ? 'col mb-0 pushdata' : `col ${currentCompact ? 'mb-1' : 'mb-2'} pushdata`;
+
+            const indicators = renderVerseIndicators(verseNum);
 
             finalContent.push(
               <div key={`v-${verseData.v}`} className={wrapperMarginClass} id={`v-${verseData.v}`}>
@@ -803,8 +809,8 @@ function Content({ book, chapter, verse }) {
                   >
                     <div className="d-flex flex-row row-col-3 g-2 text-break">
                       <div className={`col text-left words-text fs-${currentFontSize}`}>
-                        <span className="verse-num-wrapper">
-                          {renderVerseIndicators(verseNum)}
+                        <span className={`verse-num-wrapper ${indicators ? 'has-indicators' : ''}`}>
+                          {indicators}
                           <Link
                             className={`text-decoration-none fw-bold words-text fs-${currentFontSize}`}
                             to={`/${params.book}/${params.chapter}/${verseData.v}`}

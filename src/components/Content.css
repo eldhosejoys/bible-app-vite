@@ -133,10 +133,20 @@
 .verse-num-wrapper {
     position: relative;
     display: inline-block;
+    padding-top: 0;
+    margin-top: 0;
+}
+
+.verse-num-wrapper.has-indicators {
     padding-top: 1.2rem;
     /* Make room for the indicators */
     margin-top: -0.5rem;
     /* Pull back slightly to keep alignment */
+}
+
+/* Compact Mode Adjustments */
+.words-text-card:not(.card) .card-body {
+    padding-top: 0.4rem !important;
 }
 
 .verse-indicators-container {
