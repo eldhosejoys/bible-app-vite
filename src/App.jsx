@@ -6,6 +6,7 @@ import Error from './components/Error';
 import Footer from './include/Footer';
 import Settings from './features/Settings';
 import About from './components/About';
+import Privacy from './components/Privacy';
 import { Search } from './components/Search';
 import VerseRoute from './routes/VerseRoute';
 import Bookmarks from './components/Bookmarks';
@@ -24,6 +25,7 @@ function App() {
                         <Route path='/search' element={<Search />} />
                         <Route path='/settings' element={<Settings />} />
                         <Route path='/about' element={<About />} />
+                        <Route path='/privacy' element={<Privacy />} />
                         <Route path='/bookmarks' element={<Bookmarks />} />
                         <Route path='/notes' element={<Notes />} />
                         <Route path='/highlights' element={<Highlights />} />

@@ -653,6 +653,15 @@ function Settings() {
             >
               <i className="bi bi-info-circle"></i> About
             </Link>
+            <span className="opacity-25">|</span>
+            <Link
+              to="/privacy"
+              className="text-decoration-none d-flex align-items-center gap-2"
+              onClick={handleCloseModal}
+              style={{ fontSize: '0.85rem', color: 'inherit', fontWeight: 500 }}
+            >
+              <i className="bi bi-shield-check"></i> Privacy
+            </Link>
           </div>
         </Modal.Footer>
       </Modal>
