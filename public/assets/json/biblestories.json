@@ -1,0 +1,596 @@
+[
+    {
+        "title": "സൃഷ്ടി",
+        "english_title": "The Creation",
+        "desc": "ദൈവം ആകാശത്തെയും ഭൂമിയെയും അതിലുള്ള സകലത്തെയും ആറു ദിവസം കൊണ്ട് സൃഷ്ടിക്കുന്നു.",
+        "desc_en": "God creates the heavens, the earth, and everything in them in six days.",
+        "book_id": 1,
+        "c": 1,
+        "v": 1
+    },
+    {
+        "title": "മനുഷ്യൻ ഏദെനിൽ",
+        "english_title": "Adam and Eve",
+        "desc": "ദൈവം ആദ്യത്തെ പുരുഷനെയും സ്ത്രീയെയും ഏദെൻ തോട്ടത്തിൽ ആക്കുന്നു.",
+        "desc_en": "God places the first man and woman in the Garden of Eden.",
+        "book_id": 1,
+        "c": 2,
+        "v": 4
+    },
+    {
+        "title": "കയീനും ഹാബെലും",
+        "english_title": "Cain and Abel",
+        "desc": "ആദാമിന്റെ മക്കളായ കയീനും ഹാബെലും ദൈവത്തിന് യാഗം അർപ്പിക്കുന്നു.",
+        "desc_en": "Adam's sons, Cain and Abel, offer sacrifices to God.",
+        "book_id": 1,
+        "c": 4,
+        "v": 1
+    },
+    {
+        "title": "നോഹ പെട്ടകം നിർമിക്കുന്നു",
+        "english_title": "Noah's Ark",
+        "desc": "വരാനിരിക്കുന്ന പ്രളയത്തിൽ നിന്ന് രക്ഷപെടാൻ ദൈവം നോഹയോട് പെട്ടകം നിർമിക്കാൻ കൽപ്പിക്കുന്നു.",
+        "desc_en": "God commands Noah to build an ark to save his family from the coming flood.",
+        "book_id": 1,
+        "c": 6,
+        "v": 9
+    },
+    {
+        "title": "ജലപ്രളയം",
+        "english_title": "The Great Flood",
+        "desc": "ഭൂമിയിൽ മഹാപ്രളയം ഉണ്ടാകുകയും നോഹയും കുടുംബവും മാത്രം രക്ഷപെടുകയും ചെയ്യുന്നു.",
+        "desc_en": "A great flood covers the earth, and only Noah and his family are saved.",
+        "book_id": 1,
+        "c": 7,
+        "v": 1
+    },
+    {
+        "title": "ബാബേൽ ഗോപുരം",
+        "english_title": "The Tower of Babel",
+        "desc": "മനുഷ്യർ ആകാശത്തോളം എത്തുന്ന ഒരു ഗോപുരം പണിയാൻ ശ്രമിക്കുന്നു; ദൈവം അവരുടെ ഭാഷ കലക്കുന്നു.",
+        "desc_en": "People try to build a tower to the heavens; God confuses their language.",
+        "book_id": 1,
+        "c": 11,
+        "v": 1
+    },
+    {
+        "title": "ദൈവം അബ്രാമിനെ വിളിക്കുന്നു",
+        "english_title": "God Calls Abraham",
+        "desc": "സ്വന്തം ദേശം വിട്ട് ദൈവം കാണിക്കുന്ന ദേശത്തേക്ക് പോകാൻ അബ്രാമിനോട് കൽപ്പിക്കുന്നു.",
+        "desc_en": "God calls Abram to leave his country and go to a land He will show him.",
+        "book_id": 1,
+        "c": 12,
+        "v": 1
+    },
+    {
+        "title": "സൊദോമും ഗൊമോറായും",
+        "english_title": "Sodom and Gomorrah",
+        "desc": "ദുഷ്ടത നിറഞ്ഞ സൊദോം, ഗൊമോറ പട്ടണങ്ങളെ ദൈവം നശിപ്പിക്കുന്നു.",
+        "desc_en": "God destroys the wicked cities of Sodom and Gomorrah.",
+        "book_id": 1,
+        "c": 19,
+        "v": 1
+    },
+    {
+        "title": "യിസഹാക്കിന്റെ യാഗമർപ്പിക്കാനുള്ള കല്പന",
+        "english_title": "Abraham Tested (Isaac)",
+        "desc": "അബ്രഹാമിന്റെ വിശ്വാസം പരീക്ഷിക്കാനായി മകനായ യിസഹാക്കിനെ യാഗം കഴിക്കാൻ ദൈവം ആവശ്യപ്പെടുന്നു.",
+        "desc_en": "God tests Abraham's faith by asking him to sacrifice his son Isaac.",
+        "book_id": 1,
+        "c": 22,
+        "v": 1
+    },
+    {
+        "title": "യിസഹാക്കും റിബെക്കായും",
+        "english_title": "Isaac and Rebekah",
+        "desc": "അബ്രഹാം തന്റെ മകനായ യിസഹാക്കിന് ഭാര്യയെ കണ്ടെത്താൻ ദാസനെ അയക്കുന്നു.",
+        "desc_en": "Abraham sends his servant to find a wife for his son Isaac.",
+        "book_id": 1,
+        "c": 24,
+        "v": 1
+    },
+    {
+        "title": "ഏശാവിന്റെയും യാക്കോബിന്റെയും ജനനം",
+        "english_title": "Jacob and Esau",
+        "desc": "യിസഹാക്കിനും റിബെക്കയ്ക്കും ഇരട്ടക്കുട്ടികളായി ഏശാവും യാക്കോബും ജനിക്കുന്നു.",
+        "desc_en": "Twin brothers Esau and Jacob are born to Isaac and Rebekah.",
+        "book_id": 1,
+        "c": 25,
+        "v": 19
+    },
+    {
+        "title": "യാക്കോബിന്‌ ദൈവം പ്രത്യക്ഷനാകുന്നു",
+        "english_title": "Jacob's Ladder",
+        "desc": "യാക്കോബ് സ്വപ്നത്തിൽ സ്വർഗത്തിലേക്ക് മുട്ടുന്ന ഒരു കോണി കാണുന്നു.",
+        "desc_en": "Jacob dreams of a ladder reaching to heaven with angels ascending and descending.",
+        "book_id": 1,
+        "c": 28,
+        "v": 10
+    },
+    {
+        "title": "യോസേഫിനെ വിൽക്കുന്നു",
+        "english_title": "Joseph Sold by Brothers",
+        "desc": "അസൂയ മൂലം സഹോദരന്മാർ യോസേഫിനെ അടിമയായി വിൽക്കുന്നു.",
+        "desc_en": "Jealous brothers sell Joseph into slavery.",
+        "book_id": 1,
+        "c": 37,
+        "v": 1
+    },
+    {
+        "title": "യോസേഫ് പോത്തീഫറിന്റെ ഭവനത്തിൽ",
+        "english_title": "Joseph in Prison",
+        "desc": "യോസേഫ് കുറ്റം ചെയ്യാതെ തടവിലാക്കപ്പെടുന്നു, എന്നാൽ ദൈവം കൂടെയുണ്ടായിരുന്നു.",
+        "desc_en": "Joseph is wrongly imprisoned, but God is with him.",
+        "book_id": 1,
+        "c": 39,
+        "v": 1
+    },
+    {
+        "title": "മോശയുടെ ജനനം",
+        "english_title": "Birth of Moses",
+        "desc": "ശിശുവായ മോശയെ ഒരു കുട്ടയിലാക്കി നദിയിൽ ഒഴുക്കുന്നു; ഫറവോന്റെ മകൾ അവനെ വളർത്തുന്നു.",
+        "desc_en": "Baby Moses is placed in a basket in the river and adopted by Pharaoh's daughter.",
+        "book_id": 2,
+        "c": 2,
+        "v": 1
+    },
+    {
+        "title": "ദൈവം മോശയെ വിളിക്കുന്നു",
+        "english_title": "The Burning Bush",
+        "desc": "കത്തിയിട്ടും വെന്തുപോകാത്ത മുൾപ്പടർപ്പിൽ നിന്ന് ദൈവം മോശയോട് സംസാരിക്കുന്നു.",
+        "desc_en": "God speaks to Moses from a burning bush that is not consumed.",
+        "book_id": 2,
+        "c": 3,
+        "v": 1
+    },
+    {
+        "title": "ബാധകൾ: വെള്ളം രക്തമാകുന്നു",
+        "english_title": "The Ten Plagues",
+        "desc": "യിസ്രായേൽ മക്കളെ വിട്ടയക്കാൻ വിസമ്മതിച്ച ഫറവോന്റെ ദേശത്ത് ദൈവം പത്തു ബാധകൾ അയക്കുന്നു.",
+        "desc_en": "God sends ten plagues upon Egypt when Pharaoh refuses to release the Israelites.",
+        "book_id": 2,
+        "c": 7,
+        "v": 14
+    },
+    {
+        "title": "പെസഹാ",
+        "english_title": "Passover",
+        "desc": "ദൈവത്തിന്റെ സംഹാരദൂതൻ യിസ്രായേൽ ഭവനങ്ങളെ കടന്നുപോകുന്നു.",
+        "desc_en": "The angel of death passes over the houses of the Israelites marked with blood.",
+        "book_id": 2,
+        "c": 12,
+        "v": 1
+    },
+    {
+        "title": "ചെങ്കടൽ കടക്കുന്നു",
+        "english_title": "Crossing the Red Sea",
+        "desc": "ദൈവം ചെങ്കടലിനെ രണ്ടായി പിളർക്കുന്നു; യിസ്രായേൽ ജനങ്ങൾ ഉണങ്ങിയ നിലത്തുകൂടി നടക്കുന്നു.",
+        "desc_en": "God parts the Red Sea, and the Israelites walk through on dry ground.",
+        "book_id": 2,
+        "c": 14,
+        "v": 1
+    },
+    {
+        "title": "പത്തു കല്പനകൾ",
+        "english_title": "The Ten Commandments",
+        "desc": "സീനായി പർവതത്തിൽ വെച്ച് ദൈവം മോശയ്ക്ക് പത്തു കല്പനകൾ നൽകുന്നു.",
+        "desc_en": "God gives Moses the Ten Commandments on Mount Sinai.",
+        "book_id": 2,
+        "c": 20,
+        "v": 1
+    },
+    {
+        "title": "സ്വർണംകൊണ്ടുള്ള കാളക്കുട്ടി",
+        "english_title": "The Golden Calf",
+        "desc": "മോശ മലയിലായിരിക്കുമ്പോൾ ജനം സ്വർണം കൊണ്ട് ഒരു കാളക്കുട്ടിയെ ഉണ്ടാക്കി ആരാധിക്കുന്നു.",
+        "desc_en": "While Moses is on the mountain, the people make and worship a golden calf.",
+        "book_id": 2,
+        "c": 32,
+        "v": 1
+    },
+    {
+        "title": "യെരീഹോവിന്റെ പതനം",
+        "english_title": "Fall of Jericho",
+        "desc": "യിസ്രായേൽ ജനം മതിൽ ചുറ്റി നടക്കുന്നു; യെരീഹോ മതിൽ ഇടിഞ്ഞു വീഴുന്നു.",
+        "desc_en": "The Israelites march around the city, and the walls of Jericho fall down.",
+        "book_id": 6,
+        "c": 6,
+        "v": 1
+    },
+    {
+        "title": "ശിംശോനും ദലീലായും",
+        "english_title": "Samson and Delilah",
+        "desc": "ശക്തനായ ശിംശോന്റെ രഹസ്യം ദലീല മനസ്സിലാക്കി ശത്രുക്കൾക്ക് ഒറ്റിക്കൊടുക്കുന്നു.",
+        "desc_en": "Delilah discovers the secret of Samson's strength and betrays him.",
+        "book_id": 7,
+        "c": 16,
+        "v": 4
+    },
+    {
+        "title": "രൂത്തും നൊവൊമിയും",
+        "english_title": "Ruth and Naomi",
+        "desc": "രൂത്ത് തന്റെ അമ്മായിയമ്മയായ നൊവൊമിയോട് വിശ്വസ്തത കാണിക്കുന്നു.",
+        "desc_en": "Ruth shows loyalty and love to her mother-in-law, Naomi.",
+        "book_id": 8,
+        "c": 1,
+        "v": 1
+    },
+    {
+        "title": "രാജാവായി ദാവീദ് അഭിഷിക്തനാക്കുന്നു",
+        "english_title": "David Anointed King",
+        "desc": "ശമൂവേൽ പ്രവാചകൻ ഇടയബാലനായ ദാവീദിനെ രാജാവായി അഭിഷേകം ചെയ്യുന്നു.",
+        "desc_en": "Samuel the prophet anoints the shepherd boy David as king.",
+        "book_id": 9,
+        "c": 16,
+        "v": 1
+    },
+    {
+        "title": "ദാവീദും ഗോല്യാത്തും",
+        "english_title": "David and Goliath",
+        "desc": "ചെറുപ്പക്കാരനായ ദാവീദ് ഭീമനായ ഗോല്യാത്തിനെ കവിണ കൊണ്ട് വീഴ്ത്തുന്നു.",
+        "desc_en": "Young David defeats the giant Goliath with a sling and a stone.",
+        "book_id": 9,
+        "c": 17,
+        "v": 1
+    },
+    {
+        "title": "ശലോമോന്റെ പരിജ്ഞാനം",
+        "english_title": "Solomon's Wisdom",
+        "desc": "രണ്ട് സ്ത്രീകൾക്കിടയിലെ തർക്കം ശലോമോൻ ജ്ഞാനത്തോടെ പരിഹരിക്കുന്നു.",
+        "desc_en": "King Solomon wisely settles a dispute between two women over a baby.",
+        "book_id": 11,
+        "c": 3,
+        "v": 16
+    },
+    {
+        "title": "ഏലീയാവും സാരെഫാത്തിലെ വിധവയും",
+        "english_title": "Elijah and the Widow",
+        "desc": "ഏലീയാവ് പ്രവാചകൻ വിധവയുടെ കലത്തിലെ മാവ് തീരാതെ അത്ഭുതം പ്രവർത്തിക്കുന്നു.",
+        "desc_en": "Elijah performs a miracle so the widow's flour and oil do not run out.",
+        "book_id": 11,
+        "c": 17,
+        "v": 8
+    },
+    {
+        "title": "ഏലീയാവും ബാലിന്റെ പ്രവാചകരും",
+        "english_title": "Elijah vs Baal Prophets",
+        "desc": "കർമേൽ പർവതത്തിൽ വെച്ച് സത്യദൈവം ആരാണെന്ന് തെളിയിക്കപ്പെടുന്നു.",
+        "desc_en": "God proves He is the true God by sending fire on Mount Carmel.",
+        "book_id": 11,
+        "c": 18,
+        "v": 20
+    },
+    {
+        "title": "നയമാൻ സൗഖ്യം പ്രാപിക്കുന്നു",
+        "english_title": "Naaman Healed",
+        "desc": "യോർദ്ദാൻ നദിയിൽ ഏഴു പ്രാവശ്യം മുങ്ങിയ നയമാന്റെ കുഷ്ഠരോഗം മാറുന്നു.",
+        "desc_en": "Naaman is healed of leprosy after dipping seven times in the Jordan River.",
+        "book_id": 12,
+        "c": 5,
+        "v": 1
+    },
+    {
+        "title": "മതിൽ പുതുക്കിപ്പണിയുവാൻ ഉത്തേജിപ്പിക്കുന്നു",
+        "english_title": "Nehemiah Rebuilds Walls",
+        "desc": "നെഹെമ്യാവിന്റെ നേതൃത്വത്തിൽ യെരൂശലേമിന്റെ മതിലുകൾ പുതുക്കിപ്പണിയുന്നു.",
+        "desc_en": "Nehemiah leads the rebuilding of the walls of Jerusalem.",
+        "book_id": 16,
+        "c": 2,
+        "v": 11
+    },
+    {
+        "title": "യെഹൂദർക്കു സ്വയരക്ഷയ്ക്കുള്ള അവകാശം",
+        "english_title": "Esther Saves Her People",
+        "desc": "എസ്ഥേർ രാജ്ഞി ധൈര്യപൂർവം രാജാവിനെ കണ്ട് തന്റെ ജനത്തെ രക്ഷിക്കുന്നു.",
+        "desc_en": "Queen Esther bravely approaches the king to save her people from destruction.",
+        "book_id": 17,
+        "c": 8,
+        "v": 1
+    },
+    {
+        "title": "ഇയ്യോബിനുണ്ടായ നാശനഷ്ടങ്ങൾ",
+        "english_title": "Job's Suffering",
+        "desc": "സകലതും നഷ്ടപ്പെട്ടപ്പോഴും ഇയ്യോബ് ദൈവത്തിലുള്ള വിശ്വാസം വെടിയുന്നില്ല.",
+        "desc_en": "Job remains faithful to God despite losing his wealth, health, and family.",
+        "book_id": 18,
+        "c": 1,
+        "v": 1
+    },
+    {
+        "title": "എരിയുന്ന തീച്ചൂളയിൽനിന്നു വിടുവിക്കപ്പെടുന്നു",
+        "english_title": "The Fiery Furnace",
+        "desc": "ഷദ്രക്, മേശക്, അബേദ്‌നെഗോ എന്നിവരെ തീച്ചൂളയിൽ നിന്ന് ദൈവം രക്ഷിക്കുന്നു.",
+        "desc_en": "God saves Shadrach, Meshach, and Abednego from the fiery furnace.",
+        "book_id": 27,
+        "c": 3,
+        "v": 1
+    },
+    {
+        "title": "ദാനീയേൽ സിംഹങ്ങളുടെ ഗുഹയിൽ",
+        "english_title": "Daniel in the Lions' Den",
+        "desc": "ദാനീയേലിനെ സിംഹങ്ങളുടെ ഗുഹയിൽ ഇട്ടെങ്കിലും ദൈവം അവനെ സംരക്ഷിക്കുന്നു.",
+        "desc_en": "Daniel is thrown into a den of lions, but God shuts the lions' mouths.",
+        "book_id": 27,
+        "c": 6,
+        "v": 1
+    },
+    {
+        "title": "യോനാ ഓടിപ്പോകുന്നു",
+        "english_title": "Jonah and the Whale",
+        "desc": "മത്സ്യത്തിന്റെ വയറ്റിൽ മൂന്നു ദിവസം കിടന്ന യോനാ ദൈവത്തോട് പ്രാർത്ഥിക്കുന്നു.",
+        "desc_en": "Jonah prays from the belly of a great fish after running from God.",
+        "book_id": 32,
+        "c": 1,
+        "v": 1
+    },
+    {
+        "title": "യേശുക്രിസ്തുവിന്റെ ജനനം",
+        "english_title": "Birth of Jesus",
+        "desc": "കന്യകയായ മറിയയിൽ നിന്ന് ലോകരക്ഷകനായ യേശു ജനിക്കുന്നു.",
+        "desc_en": "Jesus, the Savior of the world, is born to the Virgin Mary.",
+        "book_id": 40,
+        "c": 1,
+        "v": 18
+    },
+    {
+        "title": "യോഹന്നാൻ സ്നാപകന്റെ പ്രസംഗം",
+        "english_title": "John the Baptist",
+        "desc": "യേശുവിന്റെ വരവിനായി യോഹന്നാൻ സ്നാപകൻ ജനങ്ങളെ ഒരുക്കുന്നു.",
+        "desc_en": "John the Baptist prepares the way for the coming of Jesus.",
+        "book_id": 40,
+        "c": 3,
+        "v": 1
+    },
+    {
+        "title": "യേശു സ്നാനം ഏൽക്കുന്നു",
+        "english_title": "Baptism of Jesus",
+        "desc": "യോർദ്ദാൻ നദിയിൽ വെച്ച് യോഹന്നാനിൽ നിന്ന് യേശു സ്നാനം സ്വീകരിക്കുന്നു.",
+        "desc_en": "Jesus is baptized by John in the Jordan River.",
+        "book_id": 40,
+        "c": 3,
+        "v": 13
+    },
+    {
+        "title": "യേശു പരീക്ഷിക്കപ്പെടുന്നു",
+        "english_title": "Temptation of Jesus",
+        "desc": "മരുഭൂമിയിൽ വെച്ച് സാത്താൻ യേശുവിനെ പരീക്ഷിക്കുന്നു; യേശു ജയിക്കുന്നു.",
+        "desc_en": "Jesus is tempted by Satan in the wilderness but remains sinless.",
+        "book_id": 40,
+        "c": 4,
+        "v": 1
+    },
+    {
+        "title": "ഗിരിപ്രഭാഷണം",
+        "english_title": "Sermon on the Mount",
+        "desc": "യേശു തന്റെ ശിഷ്യന്മാരെ ഭാഗ്യവാക്യങ്ങളും ദൈവരാജ്യ രഹസ്യങ്ങളും പഠിപ്പിക്കുന്നു.",
+        "desc_en": "Jesus teaches the Beatitudes and kingdom principles to His disciples.",
+        "book_id": 40,
+        "c": 5,
+        "v": 1
+    },
+    {
+        "title": "പ്രാർത്ഥനയെപ്പറ്റി",
+        "english_title": "The Lord's Prayer",
+        "desc": "സ്വർഗസ്ഥനായ പിതാവേ എന്ന് വിളിച്ചു പ്രാർത്ഥിക്കാൻ യേശു പഠിപ്പിക്കുന്നു.",
+        "desc_en": "Jesus teaches His disciples how to pray using the Lord's Prayer.",
+        "book_id": 40,
+        "c": 6,
+        "v": 5
+    },
+    {
+        "title": "കൊടുംങ്കാറ്റിനെ ശാസിക്കുന്നു",
+        "english_title": "Jesus Calms the Storm",
+        "desc": "യേശു കാറ്റിനെയും കടലിനെയും ശാസിക്കുന്നു; വലിയ ശാന്തത ഉണ്ടാകുന്നു.",
+        "desc_en": "Jesus rebukes the wind and waves, and the storm calms down.",
+        "book_id": 40,
+        "c": 8,
+        "v": 23
+    },
+    {
+        "title": "അയ്യായിരം പേർക്ക് ആഹാരം",
+        "english_title": "Feeding the 5000",
+        "desc": "അഞ്ച് അപ്പവും രണ്ട് മീനും കൊണ്ട് യേശു അയ്യായിരം പേരെ പോഷിപ്പിക്കുന്നു.",
+        "desc_en": "Jesus feeds five thousand people with five loaves and two fish.",
+        "book_id": 40,
+        "c": 14,
+        "v": 13
+    },
+    {
+        "title": "യേശു വെള്ളത്തിനു മീതെ നടക്കുന്നു",
+        "english_title": "Jesus Walks on Water",
+        "desc": "രാത്രിയിൽ കടലിനു മീതെ യേശു നടന്നു വരുന്നത് ശിഷ്യന്മാർ കാണുന്നു.",
+        "desc_en": "The disciples see Jesus walking on the water during a storm.",
+        "book_id": 40,
+        "c": 14,
+        "v": 22
+    },
+    {
+        "title": "യേശുവിന്റെ രൂപാന്തരം",
+        "english_title": "The Transfiguration",
+        "desc": "മലമുകളിൽ വെച്ച് യേശുവിന്റെ മുഖം സൂര്യനെപ്പോലെ ശോഭിക്കുന്നു.",
+        "desc_en": "Jesus is transfigured on the mountain, shining like the sun.",
+        "book_id": 40,
+        "c": 17,
+        "v": 1
+    },
+    {
+        "title": "യെരൂശലേമിലേക്കുള്ള ജൈത്രയാത്ര",
+        "english_title": "Triumphal Entry",
+        "desc": "കഴുതക്കുട്ടിയുടെ പുറത്ത് കയറി യേശു യെരൂശലേമിലേക്ക് വരുന്നു; ജനം ഹോശന്ന പാടുന്നു.",
+        "desc_en": "Jesus enters Jerusalem on a donkey while people sing Hosanna.",
+        "book_id": 40,
+        "c": 21,
+        "v": 1
+    },
+    {
+        "title": "യേശു ഗെത്ത്ശേമന തോട്ടത്തിൽ",
+        "english_title": "Jesus in Gethsemane",
+        "desc": "ക്രൂശീകരണത്തിന് മുൻപുള്ള രാത്രിയിൽ യേശു അതിവേദനയോടെ പ്രാർത്ഥിക്കുന്നു.",
+        "desc_en": "Jesus prays in agony in the garden the night before His crucifixion.",
+        "book_id": 40,
+        "c": 26,
+        "v": 36
+    },
+    {
+        "title": "പത്രൊസ് തള്ളിപ്പറയുന്നു",
+        "english_title": "Peter's Denial",
+        "desc": "കോഴി കൂകും മുൻപെ പത്രോസ് യേശുവിനെ മൂന്നുതവണ തള്ളിപ്പറയുന്നു.",
+        "desc_en": "Peter denies knowing Jesus three times before the rooster crows.",
+        "book_id": 40,
+        "c": 26,
+        "v": 69
+    },
+    {
+        "title": "യേശുവിനെ ക്രൂശിക്കുന്നു",
+        "english_title": "The Crucifixion",
+        "desc": "മനുഷ്യരുടെ പാപങ്ങൾക്ക് വേണ്ടി യേശു ക്രൂശിൽ മരിക്കുന്നു.",
+        "desc_en": "Jesus dies on the cross for the sins of the world.",
+        "book_id": 40,
+        "c": 27,
+        "v": 32
+    },
+    {
+        "title": "യേശുവിന്റെ ഉയിർത്തെഴുന്നേല്പ്",
+        "english_title": "The Resurrection",
+        "desc": "മരിച്ചവരിൽ നിന്ന് മൂന്നാം നാൾ യേശു ഉയിർത്തെഴുന്നേൽക്കുന്നു.",
+        "desc_en": "Jesus rises from the dead on the third day.",
+        "book_id": 40,
+        "c": 28,
+        "v": 1
+    },
+    {
+        "title": "പതിനൊന്ന് ശിഷ്യന്മാരെ നിയോഗിക്കുന്നു",
+        "english_title": "The Great Commission",
+        "desc": "സുവിശേഷം ലോകമെങ്ങും അറിയിക്കാൻ യേശു ശിഷ്യന്മാരോട് കൽപ്പിക്കുന്നു.",
+        "desc_en": "Jesus commands His disciples to preach the gospel to all nations.",
+        "book_id": 40,
+        "c": 28,
+        "v": 16
+    },
+    {
+        "title": "നല്ല ശമര്യക്കാരൻ",
+        "english_title": "The Good Samaritan",
+        "desc": "തന്റെ അയൽക്കാരൻ ആരാണെന്ന് പഠിപ്പിക്കാൻ യേശു നല്ല ശമര്യക്കാരന്റെ ഉപമ പറയുന്നു.",
+        "desc_en": "Jesus tells the story of the Good Samaritan to show who a true neighbor is.",
+        "book_id": 42,
+        "c": 10,
+        "v": 25
+    },
+    {
+        "title": "മുടിയനായ പുത്രന്റെ ഉപമ",
+        "english_title": "The Prodigal Son",
+        "desc": "തെറ്റു ചെയ്തു മടങ്ങി വന്ന മകനെ സ്നേഹത്തോടെ സ്വീകരിക്കുന്ന പിതാവിന്റെ കഥ.",
+        "desc_en": "The story of a father welcoming back his lost son with love.",
+        "book_id": 42,
+        "c": 15,
+        "v": 11
+    },
+    {
+        "title": "യേശുവും സക്കായിയും",
+        "english_title": "Zacchaeus",
+        "desc": "ചുങ്കക്കാരനായ സക്കായി യേശുവിനെ കാണാൻ മരത്തിൽ കയറുന്നു.",
+        "desc_en": "Zacchaeus the tax collector climbs a tree to see Jesus.",
+        "book_id": 42,
+        "c": 19,
+        "v": 1
+    },
+    {
+        "title": "അന്ത്യഅത്തായം",
+        "english_title": "The Last Supper",
+        "desc": "മരിക്കുന്നതിന് മുൻപ് യേശു ശിഷ്യന്മാരോടൊപ്പം അവസാനത്തെ അത്താഴം കഴിക്കുന്നു.",
+        "desc_en": "Jesus shares a final meal with His disciples before His death.",
+        "book_id": 42,
+        "c": 22,
+        "v": 14
+    },
+    {
+        "title": "ലാസറിനെ ഉയർപ്പിക്കുന്നു",
+        "english_title": "Lazarus Raised",
+        "desc": "മരിച്ച് നാലു ദിവസം കഴിഞ്ഞ ലാസറിനെ യേശു ജീവനിലേക്ക് തിരികെ വിളിക്കുന്നു.",
+        "desc_en": "Jesus calls Lazarus back to life after he had been dead for four days.",
+        "book_id": 43,
+        "c": 11,
+        "v": 38
+    },
+    {
+        "title": "സ്വർഗാരോഹണം",
+        "english_title": "The Ascension",
+        "desc": "ഉയിർത്തെഴുന്നേറ്റ യേശു ശിഷ്യന്മാർ കാൺകെ സ്വർഗത്തിലേക്ക് പോകുന്നു.",
+        "desc_en": "The risen Jesus ascends to heaven while His disciples watch.",
+        "book_id": 44,
+        "c": 1,
+        "v": 6
+    },
+    {
+        "title": "പരിശുദ്ധാത്മാവിന്റെ ആഗമനം",
+        "english_title": "Pentecost",
+        "desc": "പെന്തക്കോസ്ത് നാളിൽ ശിഷ്യന്മാരുടെ മേൽ പരിശുദ്ധാത്മാവ് ഇറങ്ങി വരുന്നു.",
+        "desc_en": "The Holy Spirit descends upon the disciples on the day of Pentecost.",
+        "book_id": 44,
+        "c": 2,
+        "v": 1
+    },
+    {
+        "title": "സ്തെഫാനൊസിനെ കല്ലെറിഞ്ഞു കൊല്ലുന്നു",
+        "english_title": "Stephen (First Martyr)",
+        "desc": "ക്രിസ്തുവിന് വേണ്ടി ആദ്യമായി രക്തസാക്ഷിയായ സ്തെഫാനോസ്.",
+        "desc_en": "Stephen becomes the first martyr for Christ.",
+        "book_id": 44,
+        "c": 7,
+        "v": 54
+    },
+    {
+        "title": "ശൗലിന്റെ മാനസാന്തരം",
+        "english_title": "Conversion of Saul (Paul)",
+        "desc": "ക്രിസ്ത്യാനികളെ ഉപദ്രവിച്ചിരുന്ന ശൗലിന് ദമസ്‌ക്കോസ് വഴിയിൽ വെച്ച് യേശു പ്രത്യക്ഷപ്പെടുന്നു.",
+        "desc_en": "Jesus appears to Saul on the road to Damascus, changing his life forever.",
+        "book_id": 44,
+        "c": 9,
+        "v": 1
+    },
+    {
+        "title": "ഫിലിപ്പിയിൽ വച്ചു തടവിലാക്കപ്പെടുന്നു",
+        "english_title": "Paul and Silas in Prison",
+        "desc": "പൗലോസും ശീലാസും ജയിലിൽ കിടന്നു ദൈവത്തെ സ്തുതിക്കുന്നു; ഭൂകമ്പം ഉണ്ടാകുന്നു.",
+        "desc_en": "Paul and Silas praise God in prison, and an earthquake opens the doors.",
+        "book_id": 44,
+        "c": 16,
+        "v": 11
+    },
+    {
+        "title": "സ്നേഹം",
+        "english_title": "The Love Chapter",
+        "desc": "സ്നേഹത്തിന്റെ ഗുണങ്ങളെക്കുറിച്ച് പൗലോസ് അപ്പൊസ്തലൻ വിവരിക്കുന്നു.",
+        "desc_en": "Apostle Paul describes the qualities of true love.",
+        "book_id": 46,
+        "c": 13,
+        "v": 1
+    },
+    {
+        "title": "ആത്മാവിന്റെ ഫലവും ജഡത്തിന്റെ പ്രവൃത്തികളും",
+        "english_title": "Fruit of the Spirit",
+        "desc": "ക്രിസ്തീയ ജീവിതത്തിൽ ഉണ്ടാകേണ്ട ആത്മാവിന്റെ ഫലങ്ങളെക്കുറിച്ച് പഠിപ്പിക്കുന്നു.",
+        "desc_en": "Teaches about the fruit of the Spirit that should be in a Christian's life.",
+        "book_id": 48,
+        "c": 5,
+        "v": 16
+    },
+    {
+        "title": "ദൈവത്തിന്റെ സർവായുധവർഗം",
+        "english_title": "Armor of God",
+        "desc": "സാത്താനെതിരായ പോരാട്ടത്തിൽ ധരിക്കേണ്ട ആത്മീയ ആയുധങ്ങൾ.",
+        "desc_en": "The spiritual armor believers must wear to stand against Satan.",
+        "book_id": 49,
+        "c": 6,
+        "v": 10
+    },
+    {
+        "title": "പുതിയ ആകാശവും പുതിയ ഭൂമിയും",
+        "english_title": "New Heaven and Earth",
+        "desc": "ദൈവം സൃഷ്ടിക്കുന്ന പുതിയ ലോകത്തെക്കുറിച്ചുള്ള ദർശനം.",
+        "desc_en": "A vision of the new world that God will create.",
+        "book_id": 66,
+        "c": 21,
+        "v": 1
+    }
+]
