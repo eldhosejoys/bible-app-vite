@@ -27,6 +27,9 @@ function VerseActionToolbar({
     onClose,
     onActionComplete,
     onOpenNote,  // New callback to open note popover
+    onToggleReferences,  // Callback to toggle references for selected verses
+    hasReferencesShown = false,  // Whether any selected verse has references shown
+    crossRefData = null,  // Cross reference data to check if references exist
     explicitVerses = null
 }) {
     const [showHighlightModal, setShowHighlightModal] = useState(false);
@@ -315,6 +318,25 @@ function VerseActionToolbar({
 
     const count = explicitVerses ? explicitVerses.length : selectedVerses.length;
 
+    // Check if any selected verse has cross-references available
+    const hasCrossReferences = () => {
+        if (!crossRefData || !Array.isArray(crossRefData)) return false;
+        if (explicitVerses) {
+            return explicitVerses.some(v =>
+                crossRefData.some(cr => String(cr.c) === String(v.c) && String(cr.v) === String(v.v))
+            );
+        }
+        return selectedVerses.some(v =>
+            crossRefData.some(cr => String(cr.c) === String(chapter) && String(cr.v) === String(v))
+        );
+    };
+
+    const handleToggleRefs = () => {
+        if (onToggleReferences) {
+            onToggleReferences([...selectedVerses]);
+        }
+    };
+
     return (
         <>
             {/* Floating Toolbar */}
@@ -417,7 +439,6 @@ function VerseActionToolbar({
                         </button>
                     )}
 
-                    {/* Highlight */}
                     {!explicitVerses && (
                         <button
                             onClick={() => {
@@ -435,6 +456,21 @@ function VerseActionToolbar({
                                 <path d="M3.5 12.5a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-1 0v-1a.5.5 0 0 1 .5-.5Z" />
                             </svg>
                             <span className="btn-text">Highlight</span>
+                        </button>
+                    )}
+
+                    {/* References Toggle */}
+                    {!explicitVerses && (
+                        <button
+                            onClick={handleToggleRefs}
+                            className={`premium-action-btn refs-btn ${hasReferencesShown ? 'active' : ''}`}
+                            title={hasReferencesShown ? 'Hide References' : 'Show References'}
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M4.715 6.542 3.343 7.914a3 3 0 1 0 4.243 4.243l1.828-1.829A3 3 0 0 0 8.586 5.5L8 6.086a1.001 1.001 0 0 0-.154.199 2 2 0 0 1 .861 3.337L6.88 11.45a2 2 0 1 1-2.83-2.83l.793-.792a4.018 4.018 0 0 1-.128-1.287z" />
+                                <path d="M6.586 4.672A3 3 0 0 0 7.414 9.5l.775-.776a2 2 0 0 1-.896-3.346L9.12 3.55a2 2 0 1 1 2.83 2.83l-.793.792c.112.42.155.855.128 1.287l1.372-1.372a3 3 0 1 0-4.243-4.243L6.586 4.672z" />
+                            </svg>
+                            <span className="btn-text">{hasReferencesShown ? 'Hide Refs' : 'Show Refs'}</span>
                         </button>
                     )}
 
@@ -597,6 +633,7 @@ function VerseActionToolbar({
           font-weight: 600;
           cursor: pointer;
           outline: none;
+          white-space: nowrap;
         }
 
         .premium-action-btn:hover {
@@ -637,6 +674,13 @@ function VerseActionToolbar({
           color: white !important;
           border-color: rgba(16, 185, 129, 0.5);
           box-shadow: 0 0 20px rgba(5, 150, 105, 0.35);
+        }
+
+        .premium-action-btn.active.refs-btn {
+          background: linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%) !important;
+          color: white !important;
+          border-color: rgba(167, 139, 250, 0.5);
+          box-shadow: 0 0 20px rgba(124, 58, 237, 0.35);
         }
 
         .premium-action-btn.close-btn {

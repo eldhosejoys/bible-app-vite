@@ -53,6 +53,8 @@ function Content({ book, chapter, verse }) {
   const [chaptername, setChaptername] = useState("");
   const [activeCrossReference, setActiveCrossReference] = useState({});
   const [expandedReferences, setExpandedReferences] = useState({});
+  const [verseReferencesToggledOn, setVerseReferencesToggledOn] = useState(new Set()); // Verses with references explicitly toggled ON
+  const [verseReferencesToggledOff, setVerseReferencesToggledOff] = useState(new Set()); // Verses with references explicitly toggled OFF
   const [bibleData, setBibleData] = useState(null);
   const [titlesData, setTitlesData] = useState(null);
   const [headingsData, setHeadingsData] = useState(null);
@@ -200,6 +202,59 @@ function Content({ book, chapter, verse }) {
     handleClearSelection();
   };
 
+  // Handle toggling references for selected verses
+  const handleToggleReferences = (verses) => {
+    const globalEnabled = areReferencesEnabled();
+
+    // For each verse, check its current effective state and toggle it
+    const updatedOn = new Set(verseReferencesToggledOn);
+    const updatedOff = new Set(verseReferencesToggledOff);
+
+    // Determine the target state based on ALL selected verses
+    // If ANY are showing, we hide all. If NONE are showing, we show all.
+    const anyShowing = verses.some(v => {
+      if (updatedOn.has(v)) return true;
+      if (updatedOff.has(v)) return false;
+      return globalEnabled;
+    });
+
+    verses.forEach(v => {
+      if (anyShowing) {
+        // Hide references for this verse
+        if (globalEnabled) {
+          updatedOff.add(v);
+          updatedOn.delete(v);
+        } else {
+          updatedOn.delete(v);
+        }
+      } else {
+        // Show references for this verse
+        if (globalEnabled) {
+          updatedOff.delete(v);
+        } else {
+          updatedOn.add(v);
+        }
+      }
+    });
+
+    setVerseReferencesToggledOn(updatedOn);
+    setVerseReferencesToggledOff(updatedOff);
+  };
+
+  // Check if references should be shown for a specific verse
+  const shouldShowReferencesForVerse = (verseNum) => {
+    const globalEnabled = areReferencesEnabled();
+    if (verseReferencesToggledOn.has(verseNum)) return true;
+    if (verseReferencesToggledOff.has(verseNum)) return false;
+    return globalEnabled;
+  };
+
+  // Check if any of the selected verses currently have references shown
+  const areReferencesShownForSelectedVerses = () => {
+    if (selectedVerses.length === 0) return false;
+    return selectedVerses.some(v => shouldShowReferencesForVerse(v));
+  };
+
   // Handle opening note popover from toolbar
   const handleOpenNote = (noteData) => {
     setActiveNotePopover(noteData);
@@ -226,10 +281,9 @@ function Content({ book, chapter, verse }) {
   };
 
   const getCrossRefs = async () => {
-    if (areReferencesEnabled()) {
-      return await getCrossReferencesForBook(params.book);
-    }
-    return null;
+    // Always load cross-reference data so per-verse toggle can work
+    // The display is controlled by shouldShowReferencesForVerse()
+    return await getCrossReferencesForBook(params.book);
   };
 
   const getIntroInfos = async () => {
@@ -305,10 +359,15 @@ function Content({ book, chapter, verse }) {
   }, [location, settingsTick]);
 
   // --- UI RENDERING HELPERS ---
-  const renderCrossReferences = (references, verseIndex) => {
-    if (!areReferencesEnabled() || !references || references.length === 0) {
-      return null;
-    }
+  const renderCrossReferences = (references, verseIndex, verseNums = []) => {
+    if (!references || references.length === 0) return null;
+
+    // Check if any verse in this group should show references
+    const shouldShow = verseNums.length > 0
+      ? verseNums.some(v => shouldShowReferencesForVerse(v))
+      : areReferencesEnabled();
+
+    if (!shouldShow) return null;
 
     const sortedReferences = [...references].sort((a, b) => b.lyk - a.lyk);
     const isExpanded = expandedReferences[verseIndex];
@@ -656,7 +715,7 @@ function Content({ book, chapter, verse }) {
                     </div>
                   </div>
                   {/* Render cross-references for the entire group, using the index of the first verse */}
-                  {renderCrossReferences(groupCrossReferences, i)}
+                  {renderCrossReferences(groupCrossReferences, i, versesInRange.map(v => Number(v.v)))}
                 </div>
               </div>
             </div>
@@ -783,7 +842,7 @@ function Content({ book, chapter, verse }) {
                         })}
                       </div>
                     </div>
-                    {renderCrossReferences(groupCrossReferences, i)}
+                    {renderCrossReferences(groupCrossReferences, i, groupVerses.map(v => Number(v.v)))}
                   </div>
                 </div>
               </div>
@@ -841,7 +900,7 @@ function Content({ book, chapter, verse }) {
                         </span> {verseData.t}
                       </div>
                     </div>
-                    {renderCrossReferences(verseCrossReferences, i)}
+                    {renderCrossReferences(verseCrossReferences, i, [verseNum])}
                   </div>
                 </div>
               </div>
@@ -851,7 +910,7 @@ function Content({ book, chapter, verse }) {
       }
       setCards(finalContent);
     }
-  }, [bibleData, titlesData, headingsData, crossRefData, introData, activeCrossReference, location, expandedReferences, selectedVerses, chapterUserData, isUserDataLoaded, currentTheme, settingsTick]);
+  }, [bibleData, titlesData, headingsData, crossRefData, introData, activeCrossReference, location, expandedReferences, selectedVerses, chapterUserData, isUserDataLoaded, currentTheme, settingsTick, verseReferencesToggledOn, verseReferencesToggledOff]);
 
   // Separate effect for History logging to avoid re-logging on local state updates
   useEffect(() => {
@@ -1126,6 +1185,9 @@ function Content({ book, chapter, verse }) {
           onClose={handleClearSelection}
           onActionComplete={handleActionComplete}
           onOpenNote={handleOpenNote}
+          onToggleReferences={handleToggleReferences}
+          hasReferencesShown={areReferencesShownForSelectedVerses()}
+          crossRefData={crossRefData}
         />
       )}
 
