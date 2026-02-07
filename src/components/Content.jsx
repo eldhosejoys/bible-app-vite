@@ -53,8 +53,7 @@ function Content({ book, chapter, verse }) {
   const [chaptername, setChaptername] = useState("");
   const [activeCrossReference, setActiveCrossReference] = useState({});
   const [expandedReferences, setExpandedReferences] = useState({});
-  const [verseReferencesToggledOn, setVerseReferencesToggledOn] = useState(new Set()); // Verses with references explicitly toggled ON
-  const [verseReferencesToggledOff, setVerseReferencesToggledOff] = useState(new Set()); // Verses with references explicitly toggled OFF
+  const [verseReferencesToggledOn, setVerseReferencesToggledOn] = useState(new Set()); // Verses with references explicitly toggled ON (only used when global is OFF)
   const [bibleData, setBibleData] = useState(null);
   const [titlesData, setTitlesData] = useState(null);
   const [headingsData, setHeadingsData] = useState(null);
@@ -203,57 +202,48 @@ function Content({ book, chapter, verse }) {
   };
 
   // Handle toggling references for selected verses
+  // This only works when global refs is OFF - toggling shows refs for specific verses
   const handleToggleReferences = (verses) => {
-    const globalEnabled = areReferencesEnabled();
+    setVerseReferencesToggledOn(prev => {
+      const updated = new Set(prev);
 
-    // For each verse, check its current effective state and toggle it
-    const updatedOn = new Set(verseReferencesToggledOn);
-    const updatedOff = new Set(verseReferencesToggledOff);
+      // Check if any selected verses currently have refs shown
+      const anyShowing = verses.some(v => updated.has(v));
 
-    // Determine the target state based on ALL selected verses
-    // If ANY are showing, we hide all. If NONE are showing, we show all.
-    const anyShowing = verses.some(v => {
-      if (updatedOn.has(v)) return true;
-      if (updatedOff.has(v)) return false;
-      return globalEnabled;
-    });
-
-    verses.forEach(v => {
-      if (anyShowing) {
-        // Hide references for this verse
-        if (globalEnabled) {
-          updatedOff.add(v);
-          updatedOn.delete(v);
+      verses.forEach(v => {
+        if (anyShowing) {
+          // Hide - remove from toggled on set
+          updated.delete(v);
         } else {
-          updatedOn.delete(v);
+          // Show - add to toggled on set
+          updated.add(v);
         }
-      } else {
-        // Show references for this verse
-        if (globalEnabled) {
-          updatedOff.delete(v);
-        } else {
-          updatedOn.add(v);
-        }
-      }
-    });
+      });
 
-    setVerseReferencesToggledOn(updatedOn);
-    setVerseReferencesToggledOff(updatedOff);
+      return updated;
+    });
   };
 
   // Check if references should be shown for a specific verse
   const shouldShowReferencesForVerse = (verseNum) => {
     const globalEnabled = areReferencesEnabled();
-    if (verseReferencesToggledOn.has(verseNum)) return true;
-    if (verseReferencesToggledOff.has(verseNum)) return false;
-    return globalEnabled;
+    // If global is ON, always show
+    if (globalEnabled) return true;
+    // If global is OFF, check if verse is explicitly toggled on
+    return verseReferencesToggledOn.has(verseNum);
   };
 
   // Check if any of the selected verses currently have references shown
   const areReferencesShownForSelectedVerses = () => {
     if (selectedVerses.length === 0) return false;
-    return selectedVerses.some(v => shouldShowReferencesForVerse(v));
+    // When global is OFF, check if any selected verse has been toggled on
+    return selectedVerses.some(v => verseReferencesToggledOn.has(v));
   };
+
+  // Reset per-verse reference toggles when chapter/book changes
+  useEffect(() => {
+    setVerseReferencesToggledOn(new Set());
+  }, [params.book, params.chapter]);
 
   // Handle opening note popover from toolbar
   const handleOpenNote = (noteData) => {
@@ -910,7 +900,7 @@ function Content({ book, chapter, verse }) {
       }
       setCards(finalContent);
     }
-  }, [bibleData, titlesData, headingsData, crossRefData, introData, activeCrossReference, location, expandedReferences, selectedVerses, chapterUserData, isUserDataLoaded, currentTheme, settingsTick, verseReferencesToggledOn, verseReferencesToggledOff]);
+  }, [bibleData, titlesData, headingsData, crossRefData, introData, activeCrossReference, location, expandedReferences, selectedVerses, chapterUserData, isUserDataLoaded, currentTheme, settingsTick, verseReferencesToggledOn]);
 
   // Separate effect for History logging to avoid re-logging on local state updates
   useEffect(() => {
@@ -1187,7 +1177,7 @@ function Content({ book, chapter, verse }) {
           onOpenNote={handleOpenNote}
           onToggleReferences={handleToggleReferences}
           hasReferencesShown={areReferencesShownForSelectedVerses()}
-          crossRefData={crossRefData}
+          globalRefsEnabled={areReferencesEnabled()}
         />
       )}
 

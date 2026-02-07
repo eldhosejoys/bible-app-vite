@@ -29,7 +29,7 @@ function VerseActionToolbar({
     onOpenNote,  // New callback to open note popover
     onToggleReferences,  // Callback to toggle references for selected verses
     hasReferencesShown = false,  // Whether any selected verse has references shown
-    crossRefData = null,  // Cross reference data to check if references exist
+    globalRefsEnabled = false,  // Whether global show references is ON
     explicitVerses = null
 }) {
     const [showHighlightModal, setShowHighlightModal] = useState(false);
@@ -318,19 +318,6 @@ function VerseActionToolbar({
 
     const count = explicitVerses ? explicitVerses.length : selectedVerses.length;
 
-    // Check if any selected verse has cross-references available
-    const hasCrossReferences = () => {
-        if (!crossRefData || !Array.isArray(crossRefData)) return false;
-        if (explicitVerses) {
-            return explicitVerses.some(v =>
-                crossRefData.some(cr => String(cr.c) === String(v.c) && String(cr.v) === String(v.v))
-            );
-        }
-        return selectedVerses.some(v =>
-            crossRefData.some(cr => String(cr.c) === String(chapter) && String(cr.v) === String(v))
-        );
-    };
-
     const handleToggleRefs = () => {
         if (onToggleReferences) {
             onToggleReferences([...selectedVerses]);
@@ -339,165 +326,182 @@ function VerseActionToolbar({
 
     return (
         <>
-            {/* Floating Toolbar */}
-            <div
-                ref={toolbarRef}
-                className="verse-action-toolbar"
-                style={{
-                    position: 'fixed',
-                    bottom: '24px',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    zIndex: 1050,
-                    backgroundColor: 'rgba(var(--bs-body-bg-rgb, 33, 37, 41), 0.8)',
-                    borderRadius: '24px',
-                    padding: '12px 18px',
-                    boxShadow: '0 10px 40px rgba(0, 0, 0, 0.4), inset 0 0 0 1px rgba(var(--bs-body-color-rgb, 255, 255, 255), 0.1)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '12px',
-                    backdropFilter: 'blur(20px)',
-                    border: '1px solid rgba(var(--bs-body-color-rgb, 255, 255, 255), 0.05)',
-                }}
-            >
-                {/* Selection count */}
-                <div
-                    className="selection-indicator"
-                    style={{
-                        fontSize: '0.85rem',
-                        fontWeight: '700',
-                        padding: '8px 14px',
-                        borderRadius: '16px',
-                        background: 'rgba(var(--bs-body-color-rgb, 255, 255, 255), 0.1)',
-                        border: '1px solid rgba(var(--bs-body-color-rgb, 255, 255, 255), 0.15)',
-                        color: 'var(--bs-body-color, #fff)',
-                        boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
-                        whiteSpace: 'nowrap',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px'
-                    }}
-                >
-                    <div className="pulse-dot"></div>
-                    {count} {count === 1 ? 'verse' : 'verses'}
-                </div>
-
-                {/* Vertical Divider */}
-                <div style={{ height: '30px', width: '1px', background: 'rgba(var(--bs-body-color-rgb, 255, 255, 255), 0.15)', margin: '0 4px' }}></div>
-
-                {/* Action Buttons */}
-                <div className="toolbar-actions" style={{ display: 'flex', gap: '10px' }}>
-                    {/* Copy */}
-                    <button
-                        onClick={handleCopy}
-                        className={`premium-action-btn copy-btn ${isCopied ? 'active' : ''}`}
-                        title="Copy"
-                    >
-                        {isCopied ? (
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
-                                <path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z" />
-                            </svg>
-                        ) : (
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
-                                <path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z" />
-                                <path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z" />
-                            </svg>
-                        )}
-                        <span className="btn-text">{isCopied ? 'Copied!' : 'Copy'}</span>
-                    </button>
-
-                    {/* Bookmark */}
-                    {!explicitVerses && (
-                        <button
-                            onClick={handleBookmark}
-                            className={`premium-action-btn bookmark-btn ${hasBookmark ? 'active' : ''}`}
-                            title={hasBookmark ? 'Remove Bookmark' : 'Add Bookmark'}
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
-                                {hasBookmark ? (
-                                    <path d="M2 2v13.5a.5.5 0 0 0 .74.439L8 13.069l5.26 2.87A.5.5 0 0 0 14 15.5V2a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2z" />
-                                ) : (
-                                    <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v13.5a.5.5 0 0 1-.777.416L8 13.101l-5.223 2.815A.5.5 0 0 1 2 15.5V2zm2-1a1 1 0 0 0-1 1v12.566l4.723-2.482a.5.5 0 0 1 .554 0L13 14.566V2a1 1 0 0 0-1-1H4z" />
-                                )}
-                            </svg>
-                            <span className="btn-text">Bookmark</span>
-                        </button>
-                    )}
-
-                    {/* Note */}
-                    {!explicitVerses && (
-                        <button
-                            onClick={handleOpenNote}
-                            className={`premium-action-btn note-btn ${hasNote ? 'active' : ''}`}
-                            title={hasNote ? 'Edit Note' : 'Add Note'}
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
-                                <path d="M5 4a.5.5 0 0 0 0 1h6a.5.5 0 0 0 0-1H5zm-.5 2.5A.5.5 0 0 1 5 6h6a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5zM5 8a.5.5 0 0 0 0 1h6a.5.5 0 0 0 0-1H5zm0 2a.5.5 0 0 0 0 1h3a.5.5 0 0 0 0-1H5z" />
-                                <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2zm10-1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1z" />
-                            </svg>
-                            <span className="btn-text">Note</span>
-                        </button>
-                    )}
-
-                    {!explicitVerses && (
-                        <button
-                            onClick={() => {
-                                if (explicitVerses) {
-                                    showFeedback('Highlights disabled in search page', 'error');
-                                } else {
-                                    setShowHighlightModal(true);
-                                }
-                            }}
-                            className={`premium-action-btn highlight-btn ${hasHighlight ? 'active' : ''}`}
-                            title="Highlight"
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
-                                <path fillRule="evenodd" d="M11.096.644a2 2 0 0 1 2.791.036l1.433 1.433a2 2 0 0 1 .035 2.791l-.413.435-8.07 8.995a.5.5 0 0 1-.372.166h-3a.5.5 0 0 1-.234-.058l-.412.412a.5.5 0 0 1-.708 0l-1-1a.5.5 0 0 1 0-.708l.412-.411A.5.5 0 0 1 1.5 12.5v-3a.5.5 0 0 1 .166-.372l8.995-8.07.435-.414Zm-.115 1.47L2.727 9.52l3.753 3.753 7.406-8.254-2.905-2.906Z" />
-                                <path d="M3.5 12.5a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-1 0v-1a.5.5 0 0 1 .5-.5Z" />
-                            </svg>
-                            <span className="btn-text">Highlight</span>
-                        </button>
-                    )}
-
-                    {/* References Toggle */}
-                    {!explicitVerses && (
-                        <button
-                            onClick={handleToggleRefs}
-                            className={`premium-action-btn refs-btn ${hasReferencesShown ? 'active' : ''}`}
-                            title={hasReferencesShown ? 'Hide References' : 'Show References'}
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
-                                <path d="M4.715 6.542 3.343 7.914a3 3 0 1 0 4.243 4.243l1.828-1.829A3 3 0 0 0 8.586 5.5L8 6.086a1.001 1.001 0 0 0-.154.199 2 2 0 0 1 .861 3.337L6.88 11.45a2 2 0 1 1-2.83-2.83l.793-.792a4.018 4.018 0 0 1-.128-1.287z" />
-                                <path d="M6.586 4.672A3 3 0 0 0 7.414 9.5l.775-.776a2 2 0 0 1-.896-3.346L9.12 3.55a2 2 0 1 1 2.83 2.83l-.793.792c.112.42.155.855.128 1.287l1.372-1.372a3 3 0 1 0-4.243-4.243L6.586 4.672z" />
-                            </svg>
-                            <span className="btn-text">{hasReferencesShown ? 'Hide Refs' : 'Show Refs'}</span>
-                        </button>
-                    )}
-
-                    {/* Close */}
+            {/* Outer Wrapper for mobile close button positioning */}
+            <div className="toolbar-wrapper" style={{
+                position: 'fixed',
+                bottom: '24px',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                zIndex: 1050,
+            }}>
+                {/* Mobile Close Button - Only shown when refs button is present (more crowded toolbar) */}
+                {!globalRefsEnabled && (
                     <button
                         onClick={onClose}
-                        className="premium-action-btn close-btn"
+                        className="mobile-close-btn"
                         title="Clear Selection"
                     >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor" viewBox="0 0 16 16">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" fill="currentColor" viewBox="0 0 16 16">
                             <path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8 2.146 2.854Z" />
                         </svg>
                     </button>
-                </div>
-
-                {/* Feedback Toast */}
-                {actionFeedback && (
-                    <div
-                        className={`premium-feedback-toast ${feedbackType}`}
-                    >
-                        {feedbackType === 'success' ? '✨' : feedbackType === 'error' ? '❌' : '⚠️'}
-                        <span>{actionFeedback}</span>
-                    </div>
                 )}
-            </div>
 
-            {/* Highlight Color Modal */}
+                {/* Floating Toolbar */}
+                <div
+                    ref={toolbarRef}
+                    className="verse-action-toolbar"
+                    style={{
+                        backgroundColor: 'rgba(var(--bs-body-bg-rgb, 33, 37, 41), 0.8)',
+                        borderRadius: '24px',
+                        padding: '12px 18px',
+                        boxShadow: '0 10px 40px rgba(0, 0, 0, 0.4), inset 0 0 0 1px rgba(var(--bs-body-color-rgb, 255, 255, 255), 0.1)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                        backdropFilter: 'blur(20px)',
+                        border: '1px solid rgba(var(--bs-body-color-rgb, 255, 255, 255), 0.05)',
+                    }}
+                >
+                    {/* Selection count */}
+                    <div
+                        className="selection-indicator"
+                        style={{
+                            fontSize: '0.85rem',
+                            fontWeight: '700',
+                            padding: '8px 14px',
+                            borderRadius: '16px',
+                            background: 'rgba(var(--bs-body-color-rgb, 255, 255, 255), 0.1)',
+                            border: '1px solid rgba(var(--bs-body-color-rgb, 255, 255, 255), 0.15)',
+                            color: 'var(--bs-body-color, #fff)',
+                            boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
+                            whiteSpace: 'nowrap',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px'
+                        }}
+                    >
+                        <div className="pulse-dot"></div>
+                        {count} {count === 1 ? 'verse' : 'verses'}
+                    </div>
+
+                    {/* Vertical Divider */}
+                    <div style={{ height: '30px', width: '1px', background: 'rgba(var(--bs-body-color-rgb, 255, 255, 255), 0.15)', margin: '0 4px' }}></div>
+
+                    {/* Action Buttons */}
+                    <div className="toolbar-actions" style={{ display: 'flex', gap: '10px' }}>
+                        {/* Copy */}
+                        <button
+                            onClick={handleCopy}
+                            className={`premium-action-btn copy-btn ${isCopied ? 'active' : ''}`}
+                            title="Copy"
+                        >
+                            {isCopied ? (
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
+                                    <path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z" />
+                                </svg>
+                            ) : (
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
+                                    <path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z" />
+                                    <path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z" />
+                                </svg>
+                            )}
+                            <span className="btn-text">{isCopied ? 'Copied!' : 'Copy'}</span>
+                        </button>
+
+                        {/* Bookmark */}
+                        {!explicitVerses && (
+                            <button
+                                onClick={handleBookmark}
+                                className={`premium-action-btn bookmark-btn ${hasBookmark ? 'active' : ''}`}
+                                title={hasBookmark ? 'Remove Bookmark' : 'Add Bookmark'}
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
+                                    {hasBookmark ? (
+                                        <path d="M2 2v13.5a.5.5 0 0 0 .74.439L8 13.069l5.26 2.87A.5.5 0 0 0 14 15.5V2a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2z" />
+                                    ) : (
+                                        <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v13.5a.5.5 0 0 1-.777.416L8 13.101l-5.223 2.815A.5.5 0 0 1 2 15.5V2zm2-1a1 1 0 0 0-1 1v12.566l4.723-2.482a.5.5 0 0 1 .554 0L13 14.566V2a1 1 0 0 0-1-1H4z" />
+                                    )}
+                                </svg>
+                                <span className="btn-text">Bookmark</span>
+                            </button>
+                        )}
+
+                        {/* Note */}
+                        {!explicitVerses && (
+                            <button
+                                onClick={handleOpenNote}
+                                className={`premium-action-btn note-btn ${hasNote ? 'active' : ''}`}
+                                title={hasNote ? 'Edit Note' : 'Add Note'}
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
+                                    <path d="M5 4a.5.5 0 0 0 0 1h6a.5.5 0 0 0 0-1H5zm-.5 2.5A.5.5 0 0 1 5 6h6a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5zM5 8a.5.5 0 0 0 0 1h6a.5.5 0 0 0 0-1H5zm0 2a.5.5 0 0 0 0 1h3a.5.5 0 0 0 0-1H5z" />
+                                    <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2zm10-1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1z" />
+                                </svg>
+                                <span className="btn-text">Note</span>
+                            </button>
+                        )}
+
+                        {!explicitVerses && (
+                            <button
+                                onClick={() => {
+                                    if (explicitVerses) {
+                                        showFeedback('Highlights disabled in search page', 'error');
+                                    } else {
+                                        setShowHighlightModal(true);
+                                    }
+                                }}
+                                className={`premium-action-btn highlight-btn ${hasHighlight ? 'active' : ''}`}
+                                title="Highlight"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
+                                    <path fillRule="evenodd" d="M11.096.644a2 2 0 0 1 2.791.036l1.433 1.433a2 2 0 0 1 .035 2.791l-.413.435-8.07 8.995a.5.5 0 0 1-.372.166h-3a.5.5 0 0 1-.234-.058l-.412.412a.5.5 0 0 1-.708 0l-1-1a.5.5 0 0 1 0-.708l.412-.411A.5.5 0 0 1 1.5 12.5v-3a.5.5 0 0 1 .166-.372l8.995-8.07.435-.414Zm-.115 1.47L2.727 9.52l3.753 3.753 7.406-8.254-2.905-2.906Z" />
+                                    <path d="M3.5 12.5a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-1 0v-1a.5.5 0 0 1 .5-.5Z" />
+                                </svg>
+                                <span className="btn-text">Highlight</span>
+                            </button>
+                        )}
+
+                        {/* References Toggle - Only show when global refs is OFF */}
+                        {!explicitVerses && !globalRefsEnabled && (
+                            <button
+                                onClick={handleToggleRefs}
+                                className={`premium-action-btn refs-btn ${hasReferencesShown ? 'active' : ''}`}
+                                title={hasReferencesShown ? 'Hide References' : 'Show References'}
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
+                                    <path d="M4.715 6.542 3.343 7.914a3 3 0 1 0 4.243 4.243l1.828-1.829A3 3 0 0 0 8.586 5.5L8 6.086a1.001 1.001 0 0 0-.154.199 2 2 0 0 1 .861 3.337L6.88 11.45a2 2 0 1 1-2.83-2.83l.793-.792a4.018 4.018 0 0 1-.128-1.287z" />
+                                    <path d="M6.586 4.672A3 3 0 0 0 7.414 9.5l.775-.776a2 2 0 0 1-.896-3.346L9.12 3.55a2 2 0 1 1 2.83 2.83l-.793.792c.112.42.155.855.128 1.287l1.372-1.372a3 3 0 1 0-4.243-4.243L6.586 4.672z" />
+                                </svg>
+                                <span className="btn-text">{hasReferencesShown ? 'Hide Refs' : 'Show Refs'}</span>
+                            </button>
+                        )}
+
+                        {/* Close */}
+                        <button
+                            onClick={onClose}
+                            className="premium-action-btn close-btn"
+                            title="Clear Selection"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8 2.146 2.854Z" />
+                            </svg>
+                        </button>
+                    </div>
+
+                    {/* Feedback Toast */}
+                    {actionFeedback && (
+                        <div
+                            className={`premium-feedback-toast ${feedbackType}`}
+                        >
+                            {feedbackType === 'success' ? '✨' : feedbackType === 'error' ? '❌' : '⚠️'}
+                            <span>{actionFeedback}</span>
+                        </div>
+                    )}
+                </div>
+            </div>  {/* End toolbar-wrapper */}
+
+            {/* Highlight Color Modal - Outside wrapper to prevent clipping */}
             {showHighlightModal && (
                 <>
                     {/* Backdrop */}
@@ -767,8 +771,50 @@ function VerseActionToolbar({
           .selection-indicator { padding: 5px 10px !important; font-size: 0.75rem !important; flex-shrink: 0; }
           .premium-action-btn svg { width: 16px; height: 16px; min-width: 16px; }
           .premium-action-btn { padding: 6px 8px !important; flex-shrink: 0; }
+          /* Hide inline close when mobile close button is present */
+          .toolbar-wrapper:has(.mobile-close-btn) .premium-action-btn.close-btn { display: none !important; }
         }
-      `}</style>
+
+        /* Toolbar wrapper for mobile close button positioning */
+        .toolbar-wrapper {
+          position: relative;
+        }
+
+        /* Mobile close button - hidden on desktop, shown on mobile */
+        .mobile-close-btn {
+          display: none;
+          position: absolute;
+          top: -6px;
+          right: -6px;
+          width: 18px;
+          height: 18px;
+          border-radius: 50%;
+          background: rgba(239, 68, 68, 0.95);
+          border: 1px solid rgba(255, 255, 255, 0.3);
+          color: white;
+          cursor: pointer;
+          align-items: center;
+          justify-content: center;
+          padding: 0;
+          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+          transition: all 0.2s ease;
+          z-index: 10;
+        }
+
+        @media (max-width: 768px) {
+          .mobile-close-btn { display: flex; }
+        }
+
+        .mobile-close-btn svg {
+          width: 10px;
+          height: 10px;
+        }
+
+        .mobile-close-btn:hover {
+          background: rgba(239, 68, 68, 1);
+          transform: scale(1.1);
+        }
+      `}</style >
         </>
     );
 }
