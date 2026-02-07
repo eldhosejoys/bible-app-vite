@@ -771,7 +771,10 @@ function VerseActionToolbar({
           .selection-indicator { padding: 5px 10px !important; font-size: 0.75rem !important; flex-shrink: 0; }
           .premium-action-btn svg { width: 16px; height: 16px; min-width: 16px; }
           .premium-action-btn { padding: 6px 8px !important; flex-shrink: 0; }
-          /* Hide inline close when mobile close button is present */
+        }
+
+        /* Only on very small screens (400px and below), hide inline close when floating close is present */
+        @media (max-width: 400px) {
           .toolbar-wrapper:has(.mobile-close-btn) .premium-action-btn.close-btn { display: none !important; }
         }
 
@@ -780,7 +783,7 @@ function VerseActionToolbar({
           position: relative;
         }
 
-        /* Mobile close button - hidden on desktop, shown on mobile */
+        /* Mobile close button - hidden on desktop, shown only on very small screens */
         .mobile-close-btn {
           display: none;
           position: absolute;
@@ -801,7 +804,7 @@ function VerseActionToolbar({
           z-index: 10;
         }
 
-        @media (max-width: 768px) {
+        @media (max-width: 400px) {
           .mobile-close-btn { display: flex; }
         }
 
