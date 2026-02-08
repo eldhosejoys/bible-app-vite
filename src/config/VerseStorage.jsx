@@ -389,12 +389,13 @@ export const getHighlightDetails = (highlight) => {
 // ========== HISTORY ==========
 // Compact format: { id: "book/chapter" or "book/chapter:verse", t: "2024-01-10T..." }
 
-const MAX_HISTORY_ITEMS = 100;
+const MAX_HISTORY_ITEMS = 10000;
 
 export const getHistory = async () => {
     const history = await IndexedDBService.getAll(STORES.HISTORY);
-    // Sort by time descending (newest first)
-    return history.sort((a, b) => new Date(b.t) - new Date(a.t));
+    // IndexedDBService returns history sorted by timestamp index (ascending/oldest first)
+    // We want newest first, so we reverse it.
+    return history.reverse();
 };
 
 export const countHistory = async () => {
@@ -411,12 +412,21 @@ export const addToHistory = async (book, chapter, verse = null, endVerse = null)
     // Add or update (put handles both)
     await IndexedDBService.put(STORES.HISTORY, item);
 
-    // Enforce limit
-    const allHistory = await getHistory(); // This is sorted new -> old
-    if (allHistory.length > MAX_HISTORY_ITEMS) {
-        const toDelete = allHistory.slice(MAX_HISTORY_ITEMS);
-        for (const h of toDelete) {
-            await IndexedDBService.delete(STORES.HISTORY, h.id);
+    // Efficiently enforce limit without loading all items
+    const count = await countHistory();
+    if (count > MAX_HISTORY_ITEMS) {
+        const excess = count - MAX_HISTORY_ITEMS;
+        try {
+            // Get oldest IDs using the timestamp index
+            const keysToDelete = await IndexedDBService.getOldestKeys(STORES.HISTORY, 'timestamp', excess);
+
+            // Delete oldest items
+            for (const key of keysToDelete) {
+                await IndexedDBService.delete(STORES.HISTORY, key);
+            }
+        } catch (error) {
+            console.error('Failed to prune history:', error);
+            // Fallback: redundant if index exists, but safe to ignore as it just means history grows slightly larger temporarily
         }
     }
 
