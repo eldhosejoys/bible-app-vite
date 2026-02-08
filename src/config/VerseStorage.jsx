@@ -391,11 +391,57 @@ export const getHighlightDetails = (highlight) => {
 
 const MAX_HISTORY_ITEMS = 10000;
 
-export const getHistory = async () => {
-    const history = await IndexedDBService.getAll(STORES.HISTORY);
-    // IndexedDBService returns history sorted by timestamp index (ascending/oldest first)
-    // We want newest first, so we reverse it.
-    return history.reverse();
+export const getHistory = async (limit = null, offset = 0) => {
+    // If no limit, use getAll (slower if very large) but reversed
+    if (!limit) {
+        const history = await IndexedDBService.getAll(STORES.HISTORY);
+        return history.reverse();
+    }
+
+    // Optimized paged fetch using cursor
+    // We want newest first, so we use 'prev' direction on the timestamp index
+    const db = await IndexedDBService.openDB();
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction(STORES.HISTORY, 'readonly');
+        const store = transaction.objectStore(STORES.HISTORY);
+
+        let request;
+        // Ensure index exists (it should with v2)
+        if (store.indexNames.contains('timestamp')) {
+            const index = store.index('timestamp');
+            request = index.openCursor(null, 'prev'); // 'prev' = newest first
+        } else {
+            // Fallback if index missing (shouldn't happen)
+            request = store.openCursor(null, 'prev');
+        }
+
+        const results = [];
+        let hasSkipped = false;
+
+        request.onsuccess = (event) => {
+            const cursor = event.target.result;
+            if (!cursor) {
+                resolve(results);
+                return;
+            }
+
+            if (offset > 0 && !hasSkipped) {
+                hasSkipped = true;
+                cursor.advance(offset);
+                return;
+            }
+
+            results.push(cursor.value);
+
+            if (results.length < limit) {
+                cursor.continue();
+            } else {
+                resolve(results);
+            }
+        };
+
+        request.onerror = () => reject(request.error);
+    });
 };
 
 export const countHistory = async () => {

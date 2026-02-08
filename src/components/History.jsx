@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { getHistory, clearHistory, getHistoryDetails, onVerseStorageChange } from '../config/VerseStorage';
+import { getHistory, clearHistory, getHistoryDetails, onVerseStorageChange, countHistory } from '../config/VerseStorage';
 import { getTranslation } from '../config/SiteTranslations';
 import { formatDate, formatTime, formatDateTime, getCacheData, addDataIntoCache, getLanguage } from '../config/Utils';
 import { siteConfig, getBible } from '../config/siteConfig';
@@ -8,11 +8,17 @@ import axios from 'axios';
 
 function History({ inModal = false, onNavigate }) {
     const [history, setHistory] = useState([]);
+    const [offset, setOffset] = useState(0);
+    const [hasMore, setHasMore] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const ITEMS_PER_PAGE = 100;
 
     const [bibleData, setBibleData] = useState(null);
     const [titlesData, setTitlesData] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [expandedItems, setExpandedItems] = useState({});
+
+    const [totalCount, setTotalCount] = useState(0);
 
     useEffect(() => {
         if (!inModal) {
@@ -36,26 +42,74 @@ function History({ inModal = false, onNavigate }) {
                 }
             } catch (error) {
                 console.error("Error loading data for history:", error);
-            } finally {
-                setIsLoading(false);
             }
         };
 
+        const updateCount = async () => {
+            const count = await countHistory();
+            setTotalCount(count);
+        };
+
         fetchData();
-        fetchData();
-        loadHistory();
+        // Initial load
+        loadMoreHistory(true);
+        updateCount();
 
         const unsubscribe = onVerseStorageChange(() => {
-            loadHistory();
+            // Reload from scratch on change
+            loadMoreHistory(true);
+            updateCount();
         });
 
         return () => unsubscribe();
     }, [inModal]);
 
-    const loadHistory = async () => {
-        const data = await getHistory();
-        setHistory(data);
+    const loadMoreHistory = async (reset = false) => {
+        if (!reset && (!hasMore || loadingMore)) return;
+
+        setLoadingMore(true);
+        if (reset) setIsLoading(true);
+
+        const currentOffset = reset ? 0 : offset;
+        const data = await getHistory(ITEMS_PER_PAGE, currentOffset);
+
+        if (reset) {
+            setHistory(data);
+            setOffset(ITEMS_PER_PAGE);
+        } else {
+            setHistory(prev => [...prev, ...data]);
+            setOffset(prev => prev + ITEMS_PER_PAGE);
+        }
+
+        if (data.length < ITEMS_PER_PAGE) {
+            setHasMore(false);
+        } else {
+            setHasMore(true);
+        }
+
+        setLoadingMore(false);
+        if (reset) setIsLoading(false);
     };
+
+    const handleScroll = (e) => {
+        const { scrollTop, clientHeight, scrollHeight } = e.target;
+        if (scrollHeight - scrollTop <= clientHeight + 100) {
+            loadMoreHistory();
+        }
+    };
+
+    // For modal, attach scroll listener to window or specific container
+    useEffect(() => {
+        if (!inModal) {
+            const onScroll = () => {
+                if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 500) {
+                    loadMoreHistory();
+                }
+            };
+            window.addEventListener('scroll', onScroll);
+            return () => window.removeEventListener('scroll', onScroll);
+        }
+    }, [inModal, hasMore, loadingMore, offset]); // Add deps to ensure closure captures latest state
 
     const getReference = (item) => {
         if (!titlesData) return "...";
@@ -123,8 +177,10 @@ function History({ inModal = false, onNavigate }) {
     };
 
     const handleClearHistory = async () => {
-        await clearHistory();
-        await loadHistory();
+        if (window.confirm("Are you sure you want to clear your entire reading history?")) {
+            await clearHistory();
+            // loadMoreHistory(true) will be called by the listener
+        }
     };
 
     // Group history by date
@@ -155,12 +211,23 @@ function History({ inModal = false, onNavigate }) {
                             <span style={{ marginRight: '10px' }}>📖</span>
                             Reading History
                         </h2>
-                        <p className="text-muted">Verses you've recently read</p>
+                        <p className="text-muted">
+                            <span className="badge bg-light text-dark border me-2">{totalCount}</span>
+                            verses you've recently read
+                        </p>
                     </div>
                 )}
 
                 {/* Search and Actions Bar */}
-                <div className="row mb-4 g-3 align-items-center justify-content-end">
+                <div className="row mb-4 g-3 align-items-center justify-content-between">
+                    <div className="col-md-6 text-start">
+                        {/* Show count in modal/mobile if header is hidden */}
+                        {inModal && (
+                            <span className="text-muted small fw-bold">
+                                {totalCount} items
+                            </span>
+                        )}
+                    </div>
                     <div className="col-md-6 text-end">
                         {history.length > 0 && (
                             <button
@@ -179,7 +246,7 @@ function History({ inModal = false, onNavigate }) {
                 </div>
 
                 {/* History List */}
-                {isLoading ? (
+                {isLoading && history.length === 0 ? (
                     <div className="text-center py-5">
                         <div className="spinner-border text-primary" role="status">
                             <span className="visually-hidden">Loading...</span>
@@ -270,14 +337,16 @@ function History({ inModal = false, onNavigate }) {
 
                 )}
 
-                {/* Total count */}
-                {history.length > 0 && (
-                    <div className="text-center mt-4">
-                        <small className="text-muted">
-                            {history.length} item{history.length !== 1 ? 's' : ''} in history
-                        </small>
+                {/* Loading indicator for infinite scroll */}
+                {loadingMore && history.length > 0 && (
+                    <div className="text-center py-3">
+                        <div className="spinner-border spinner-border-sm text-secondary" role="status">
+                            <span className="visually-hidden">Loading...</span>
+                        </div>
                     </div>
                 )}
+
+                {/* REMOVED BOTTOM COUNT */}
             </div>
         </section>
     );
