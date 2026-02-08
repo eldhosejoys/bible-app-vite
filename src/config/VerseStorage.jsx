@@ -389,12 +389,59 @@ export const getHighlightDetails = (highlight) => {
 // ========== HISTORY ==========
 // Compact format: { id: "book/chapter" or "book/chapter:verse", t: "2024-01-10T..." }
 
-const MAX_HISTORY_ITEMS = 100;
+const MAX_HISTORY_ITEMS = 10000;
 
-export const getHistory = async () => {
-    const history = await IndexedDBService.getAll(STORES.HISTORY);
-    // Sort by time descending (newest first)
-    return history.sort((a, b) => new Date(b.t) - new Date(a.t));
+export const getHistory = async (limit = null, offset = 0) => {
+    // If no limit, use getAll (slower if very large) but reversed
+    if (!limit) {
+        const history = await IndexedDBService.getAll(STORES.HISTORY);
+        return history.reverse();
+    }
+
+    // Optimized paged fetch using cursor
+    // We want newest first, so we use 'prev' direction on the timestamp index
+    const db = await IndexedDBService.openDB();
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction(STORES.HISTORY, 'readonly');
+        const store = transaction.objectStore(STORES.HISTORY);
+
+        let request;
+        // Ensure index exists (it should with v2)
+        if (store.indexNames.contains('timestamp')) {
+            const index = store.index('timestamp');
+            request = index.openCursor(null, 'prev'); // 'prev' = newest first
+        } else {
+            // Fallback if index missing (shouldn't happen)
+            request = store.openCursor(null, 'prev');
+        }
+
+        const results = [];
+        let hasSkipped = false;
+
+        request.onsuccess = (event) => {
+            const cursor = event.target.result;
+            if (!cursor) {
+                resolve(results);
+                return;
+            }
+
+            if (offset > 0 && !hasSkipped) {
+                hasSkipped = true;
+                cursor.advance(offset);
+                return;
+            }
+
+            results.push(cursor.value);
+
+            if (results.length < limit) {
+                cursor.continue();
+            } else {
+                resolve(results);
+            }
+        };
+
+        request.onerror = () => reject(request.error);
+    });
 };
 
 export const countHistory = async () => {
@@ -411,12 +458,21 @@ export const addToHistory = async (book, chapter, verse = null, endVerse = null)
     // Add or update (put handles both)
     await IndexedDBService.put(STORES.HISTORY, item);
 
-    // Enforce limit
-    const allHistory = await getHistory(); // This is sorted new -> old
-    if (allHistory.length > MAX_HISTORY_ITEMS) {
-        const toDelete = allHistory.slice(MAX_HISTORY_ITEMS);
-        for (const h of toDelete) {
-            await IndexedDBService.delete(STORES.HISTORY, h.id);
+    // Efficiently enforce limit without loading all items
+    const count = await countHistory();
+    if (count > MAX_HISTORY_ITEMS) {
+        const excess = count - MAX_HISTORY_ITEMS;
+        try {
+            // Get oldest IDs using the timestamp index
+            const keysToDelete = await IndexedDBService.getOldestKeys(STORES.HISTORY, 'timestamp', excess);
+
+            // Delete oldest items
+            for (const key of keysToDelete) {
+                await IndexedDBService.delete(STORES.HISTORY, key);
+            }
+        } catch (error) {
+            console.error('Failed to prune history:', error);
+            // Fallback: redundant if index exists, but safe to ignore as it just means history grows slightly larger temporarily
         }
     }
 

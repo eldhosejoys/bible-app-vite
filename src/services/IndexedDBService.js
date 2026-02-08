@@ -1,6 +1,6 @@
 
 const DB_NAME = 'BibleAppDB';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORES = ['bookmarks', 'notes', 'highlights', 'history'];
 
 let dbInstance = null;
@@ -21,9 +21,19 @@ export const IndexedDBService = {
 
             request.onupgradeneeded = (event) => {
                 const db = event.target.result;
+                const transaction = event.target.transaction;
+
                 STORES.forEach(storeName => {
+                    let store;
                     if (!db.objectStoreNames.contains(storeName)) {
-                        db.createObjectStore(storeName, { keyPath: 'id' });
+                        store = db.createObjectStore(storeName, { keyPath: 'id' });
+                    } else {
+                        store = transaction.objectStore(storeName);
+                    }
+
+                    // Add timestamp index to history store for efficient sorting/pruning
+                    if (storeName === 'history' && !store.indexNames.contains('timestamp')) {
+                        store.createIndex('timestamp', 't', { unique: false });
                     }
                 });
             };
@@ -46,7 +56,19 @@ export const IndexedDBService = {
         return new Promise((resolve, reject) => {
             const transaction = db.transaction(storeName, 'readonly');
             const store = transaction.objectStore(storeName);
-            const request = query ? store.getAll(query) : store.getAll();
+
+            // If query is an IDBKeyRange, use it directly
+            // If we want to sort by timestamp (for history), check if index exists
+            let request;
+            if (storeName === 'history' && !query && store.indexNames.contains('timestamp')) {
+                // Return history sorted by timestamp (oldest first by default)
+                // We typically want newest first for UI, so we might need to reverse in app or use cursor
+                // For now, keep existing behavior (return all, sort in app) or use getAll on index
+                const index = store.index('timestamp');
+                request = index.getAll();
+            } else {
+                request = query ? store.getAll(query) : store.getAll();
+            }
 
             request.onerror = () => reject(request.error);
             request.onsuccess = () => resolve(request.result);
@@ -108,6 +130,26 @@ export const IndexedDBService = {
             const transaction = db.transaction(storeName, 'readonly');
             const store = transaction.objectStore(storeName);
             const request = store.count();
+
+            request.onerror = () => reject(request.error);
+            request.onsuccess = () => resolve(request.result);
+        });
+    },
+
+    // Get oldest keys (IDs) using an index
+    getOldestKeys: async (storeName, indexName, count = 1) => {
+        const db = await IndexedDBService.openDB();
+        return new Promise((resolve, reject) => {
+            const transaction = db.transaction(storeName, 'readonly');
+            const store = transaction.objectStore(storeName);
+
+            if (!store.indexNames.contains(indexName)) {
+                reject(new Error(`Index ${indexName} not found in store ${storeName}`));
+                return;
+            }
+
+            const index = store.index(indexName);
+            const request = index.getAllKeys(null, count);
 
             request.onerror = () => reject(request.error);
             request.onsuccess = () => resolve(request.result);
