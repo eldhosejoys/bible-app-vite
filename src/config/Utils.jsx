@@ -246,6 +246,24 @@ export const setLanguage = (lang) => {
   return true;
 };
 
+export const getLanguage2 = () => {
+  return localStorage.getItem('bible-language-2') || 'English';
+};
+
+export const setLanguage2 = (lang) => {
+  localStorage.setItem('bible-language-2', lang);
+  return true;
+};
+
+export const isSplitViewEnabled = () => {
+  return localStorage.getItem('split-view-enabled') === 'true';
+};
+
+export const setSplitViewEnabled = (enabled) => {
+  localStorage.setItem('split-view-enabled', enabled ? 'true' : 'false');
+  return true;
+};
+
 export const areReferencesEnabled = () => {
   return localStorage.getItem('showReferences') === 'true';
 };

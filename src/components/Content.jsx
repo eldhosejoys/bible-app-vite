@@ -1,9 +1,9 @@
 import { Link, useParams, useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef, useMemo, React, Fragment } from "react";
 import axios from "axios";
-import { siteConfig, getBible } from "../config/siteConfig";
+import { siteConfig, getBible, getBibleUrlForLanguage } from "../config/siteConfig";
 import { getTranslation } from '../config/SiteTranslations';
-import { getCacheData, addDataIntoCache, getLanguage, areReferencesEnabled, formatVerseRange } from '../config/Utils';
+import { getCacheData, addDataIntoCache, getLanguage, getLanguage2, isSplitViewEnabled, areReferencesEnabled, formatVerseRange } from '../config/Utils';
 import {
   getHighlightForVerse,
   getNoteForVerse,
@@ -52,6 +52,8 @@ function Content({ book, chapter, verse }) {
   const [expandedReferences, setExpandedReferences] = useState({});
   const [verseReferencesToggledOn, setVerseReferencesToggledOn] = useState(new Set()); // Verses with references explicitly toggled ON (only used when global is OFF)
   const [bibleData, setBibleData] = useState(null);
+  const [bibleData2, setBibleData2] = useState(null);
+  const [isSplitView, setIsSplitView] = useState(isSplitViewEnabled());
   const [titlesData, setTitlesData] = useState(null);
   const [headingsData, setHeadingsData] = useState(null);
   const [crossRefData, setCrossRefData] = useState(null);
@@ -115,7 +117,9 @@ function Content({ book, chapter, verse }) {
   const tooltipTimeoutRef = useRef(null);
   const lastScrolledKeyRef = useRef(null);
   const loadedBibleUrlRef = useRef(null);
+  const loadedBibleUrl2Ref = useRef(null);
   const loadedBookRef = useRef(null);
+  const loadedChapterRef = useRef(null);
 
   // Fetch user data (bookmarks, notes, highlights)
   useEffect(() => {
@@ -166,6 +170,7 @@ function Content({ book, chapter, verse }) {
 
     const handleSettingsChange = () => {
       setSettingsTick(t => t + 1);
+      setIsSplitView(isSplitViewEnabled());
     };
     window.addEventListener('settingsChange', handleSettingsChange);
 
@@ -344,15 +349,23 @@ function Content({ book, chapter, verse }) {
     itemsRef3.current = [];
 
     const currentBibleUrl = getBible();
+    const currentBibleUrl2 = isSplitViewEnabled() ? getBibleUrlForLanguage(getLanguage2()) : null;
     const bibleUrlChanged = loadedBibleUrlRef.current !== currentBibleUrl;
+    const bibleUrl2Changed = loadedBibleUrl2Ref.current !== currentBibleUrl2;
     const bookChanged = loadedBookRef.current !== params.book;
+    const chapterChanged = loadedChapterRef.current !== params.chapter;
 
-    // Reset user data loaded flag on navigation
-    setIsUserDataLoaded(false);
+    // Reset user data loaded flag only on book or chapter navigation (not on settings changes)
+    if (bookChanged || chapterChanged) {
+      setIsUserDataLoaded(false);
+    }
 
     // Reset data states only when strictly necessary to avoid flickering
     if (bibleUrlChanged) {
       setBibleData(null);
+    }
+    if (bibleUrl2Changed) {
+      setBibleData2(null);
     }
     if (bookChanged) {
       setHeadingsData(null);
@@ -386,6 +399,22 @@ function Content({ book, chapter, verse }) {
           }
         }
 
+        // Fetch secondary translation if split view active
+        if (isSplitViewEnabled()) {
+          let bible2 = bibleData2;
+          if (bibleUrl2Changed || !bible2) {
+            bible2 = await getCacheData('cache', currentBibleUrl2).then(cached => cached || axios.get(currentBibleUrl2).then(res => res.data));
+            if (bible2) {
+              addDataIntoCache('cache', currentBibleUrl2, bible2);
+              setBibleData2(bible2);
+              loadedBibleUrl2Ref.current = currentBibleUrl2;
+            }
+          }
+        } else {
+          setBibleData2(null);
+          loadedBibleUrl2Ref.current = null;
+        }
+
         // Fetch headings if book changed
         let headings = headingsData;
         if (bookChanged || !headings) {
@@ -402,6 +431,9 @@ function Content({ book, chapter, verse }) {
 
         if (bookChanged) {
           loadedBookRef.current = params.book;
+        }
+        if (chapterChanged) {
+          loadedChapterRef.current = params.chapter;
         }
 
       } catch (error) {
@@ -610,10 +642,10 @@ function Content({ book, chapter, verse }) {
     return highlight?.h || null;
   };
 
-  // --- UI RENDERING useMemo (cardsContent) ---
-  const cardsContent = useMemo(() => {
+  // --- UI RENDERING useMemo (cardsContent)  // --- UI RENDERING HELPER (Bilingual support) ---
+  const renderCards = (currentBibleData, paneLang, isSecondPane) => {
     // Return early if essential data isn't loaded yet
-    if (!bibleData || !titlesData || !isUserDataLoaded) {
+    if (!currentBibleData || !titlesData || !isUserDataLoaded) {
       return [<div className="spinner-grow text-center" key="loading" role="status"><span className="visually-hidden">Loading...</span></div>];
     }
 
@@ -663,14 +695,15 @@ function Content({ book, chapter, verse }) {
       // --- RENDER CHAPTER CONTENT (VERSES) ---
     } else if (params.chapter !== 'info') {
       const finalContent = [];
-      const currentChapterVerses = bibleData.filter(obj => Number(obj.b) == params.book && Number(obj.c) == params.chapter);
+      const currentChapterVerses = currentBibleData.filter(obj => Number(obj.b) == params.book && Number(obj.c) == params.chapter);
       const [startVerse, endVerse] = parseVerseRange(params.verse);
-      itemsRef3.current = []; // Reset refs for the new chapter content to prevent stale scrolling targets
+      
+      if (!isSecondPane) {
+        itemsRef3.current = []; // Reset refs for the first pane only
+      }
 
       // Helper to identify grouping for a verse based on saved items
       const getVerseGroupingKey = (vNum) => {
-        // If this specific verse is the target of the current URL selection, 
-        // don't treat it as the START of an automatic group.
         if (vNum === startVerse) return null;
 
         const bookmark = chapterUserData.bookmarks.find(b => b.v && b.v.includes(vNum));
@@ -731,7 +764,6 @@ function Content({ book, chapter, verse }) {
 
           // Check if any verse in the group has indicators to determine margin needs
           const hasGroupIndicators = versesInRange.some(v => {
-            // Quick check against user data without full render
             const vNum = Number(v.v);
             return chapterUserData.bookmarks.some(b => b.v.includes(vNum)) ||
               chapterUserData.notes.some(n => n.v.includes(vNum));
@@ -741,7 +773,7 @@ function Content({ book, chapter, verse }) {
           const wrapperMarginClass = (isGroupSelected && isNextSelected) ? 'col mb-0 pushdata' : `col ${currentCompact ? compactMargin : 'mb-2'} pushdata`;
 
           finalContent.push(
-            <div key={`url-group-${startVerse}-${endVerse}`} className={wrapperMarginClass} id={`v-${startVerse}`}>
+            <div key={`url-group-${startVerse}-${endVerse}`} className={wrapperMarginClass} id={isSecondPane ? undefined : `v-${startVerse}`}>
               <div
                 className={`words-text-card ${currentCompact ? '' : 'shadow-sm card'} ${selectionClass}`}
                 data-theme={currentTheme}
@@ -752,8 +784,10 @@ function Content({ book, chapter, verse }) {
                 <div
                   className="card-body rounded col-12"
                   ref={el => {
-                    for (let k = 0; k < versesInRange.length; k++) {
-                      itemsRef3.current[i + k] = el;
+                    if (!isSecondPane) {
+                      for (let k = 0; k < versesInRange.length; k++) {
+                        itemsRef3.current[i + k] = el;
+                      }
                     }
                   }}
                   style={cardStyle}
@@ -800,10 +834,10 @@ function Content({ book, chapter, verse }) {
           // --- RENDER A STORED-ITEM GROUPED CARD OR SINGLE VERSE ---
           // 1. First, check and render heading if any
           const headingInfo = headingsData?.find(h => h.c == params.chapter && h.v == verseNum);
-          if (headingInfo && (!getLanguage() || getLanguage() == 'Malayalam')) {
+          if (headingInfo && (!paneLang || paneLang == 'Malayalam')) {
             finalContent.push(
-              <div key={`h-${verseData.v}`} className="col mb-2 pushdata" id={`h-${verseData.v}`}>
-                <div className={`words-text-card ${currentCompact ? '' : 'shadow-md card'}`}>
+              <div key={`h-${verseData.v}`} className="col mb-2 pushdata" id={isSecondPane ? undefined : `h-${verseData.v}`}>
+                <div className={`words-text-card ${currentCompact ? '' : 'shadow-sm card'}`}>
                   <div className="card-body rounded col-12">
                     <div className={`col ${colorText} fw-bolder fst-italic heading-color words-text fs-${currentFontSize + 1}`}>{headingInfo.t}</div>
                     <div className="d-flex flex-row row-col-3 g-2 text-break">
@@ -848,11 +882,9 @@ function Content({ book, chapter, verse }) {
               ? groupVerses.flatMap(v => crossRefData.filter(cr => cr.c == params.chapter && cr.v == v.v))
               : [];
 
-            // Background color logic: if grouped by highlight, use it. Otherwise, find first available highlight.
             const rangeHighlightColor = groupKey.type === 'highlight' ? groupKey.data.h :
               groupVerses.map(v => getVerseHighlightColor(Number(v.v))).find(c => c);
 
-            // Temporary highlight for selected verse matching this stored group
             const hasOverlapWithUrl = startVerse && endVerse && groupVerses.some(gv => {
               const vNum = Number(gv.v);
               return vNum >= startVerse && vNum <= endVerse;
@@ -864,7 +896,6 @@ function Content({ book, chapter, verse }) {
                 ? { backgroundColor: '#faebd7', color: '#000' }
                 : {};
 
-            // Visual Merging Logic (Selection-based) for Stored Group
             const isGroupSelected = isVerseSelected(groupStartV);
             const nextHeadingInfo = headingsData?.find(h => h.c == params.chapter && h.v == (groupEndV + 1));
 
@@ -877,7 +908,6 @@ function Content({ book, chapter, verse }) {
               if (isNextSelected) selectionClass += ' connected-bottom';
             }
 
-            // detailed indicator check for groups (highlights might not have icons)
             const hasMainIndicators = groupKey.type === 'bookmark' || groupKey.type === 'note';
             const hasInnerIndicators = !hasMainIndicators && groupVerses.some(v => {
               const vNum = Number(v.v);
@@ -889,7 +919,7 @@ function Content({ book, chapter, verse }) {
             const wrapperMarginClass = (isGroupSelected && isNextSelected) ? 'col mb-0 pushdata' : `col ${currentCompact ? compactMargin : 'mb-2'} pushdata`;
 
             finalContent.push(
-              <div key={`group-${groupKey.type}-${groupKey.id}`} className={wrapperMarginClass} id={`v-${groupStartV}`}>
+              <div key={`group-${groupKey.type}-${groupKey.id}`} className={wrapperMarginClass} id={isSecondPane ? undefined : `v-${groupStartV}`}>
                 <div
                   className={`words-text-card ${currentCompact ? '' : 'shadow-sm card'} ${selectionClass}`}
                   onClick={() => handleVerseSelectRange(groupStartV, groupEndV)}
@@ -898,8 +928,10 @@ function Content({ book, chapter, verse }) {
                   <div
                     className="card-body rounded col-12"
                     ref={el => {
-                      for (let k = 0; k < groupVerses.length; k++) {
-                        itemsRef3.current[i + k] = el;
+                      if (!isSecondPane) {
+                        for (let k = 0; k < groupVerses.length; k++) {
+                          itemsRef3.current[i + k] = el;
+                        }
                       }
                     }}
                     style={cardStyle}
@@ -938,7 +970,6 @@ function Content({ book, chapter, verse }) {
             const highlightColor = getVerseHighlightColor(verseNum);
             const verseCrossReferences = Array.isArray(crossRefData) ? crossRefData.filter(cr => cr.c == params.chapter && cr.v == verseData.v) : [];
 
-            // Temporary highlight for selected verse in URL
             const isTempHighlighted = !highlightColor && verseNum >= startVerse && verseNum <= endVerse;
             const cardStyle = highlightColor
               ? { backgroundColor: highlightColor, color: '#333' }
@@ -946,7 +977,6 @@ function Content({ book, chapter, verse }) {
                 ? { backgroundColor: '#faebd7', color: '#000' }
                 : {};
 
-            // Visual Merging Logic (Selection-based)
             const nextHeadingInfo = headingsData?.find(h => h.c == params.chapter && h.v == (verseNum + 1));
             const isPrevSelected = !headingInfo && isVerseSelected(verseNum - 1) && (i > 0 && Number(currentChapterVerses[i - 1].v) === verseNum - 1);
             const isNextSelected = !nextHeadingInfo && isVerseSelected(verseNum + 1) && (i < currentChapterVerses.length - 1 && Number(currentChapterVerses[i + 1].v) === verseNum + 1);
@@ -962,7 +992,7 @@ function Content({ book, chapter, verse }) {
             const wrapperMarginClass = (isSelected && isNextSelected) ? 'col mb-0 pushdata' : `col ${currentCompact ? compactMargin : 'mb-2'} pushdata`;
 
             finalContent.push(
-              <div key={`v-${verseData.v}`} className={wrapperMarginClass} id={`v-${verseData.v}`}>
+              <div key={`v-${verseData.v}`} className={wrapperMarginClass} id={isSecondPane ? undefined : `v-${verseData.v}`}>
                 <div
                   className={`words-text-card ${currentCompact ? '' : 'shadow-sm card'} ${selectionClass}`}
                   data-theme={currentTheme}
@@ -974,7 +1004,11 @@ function Content({ book, chapter, verse }) {
                 >
                   <div
                     className="card-body rounded col-12"
-                    ref={el => itemsRef3.current[i] = el}
+                    ref={el => {
+                      if (!isSecondPane) {
+                        itemsRef3.current[i] = el;
+                      }
+                    }}
                     style={cardStyle}
                   >
                     <div className="d-flex flex-row row-col-3 g-2 text-break">
@@ -1002,7 +1036,16 @@ function Content({ book, chapter, verse }) {
       }
       return finalContent;
     }
+  };
+
+  const cardsContent = useMemo(() => {
+    return renderCards(bibleData, getLanguage() || 'Malayalam', false);
   }, [bibleData, titlesData, headingsData, crossRefData, introData, activeCrossReference, location, expandedReferences, selectedVerses, chapterUserData, isUserDataLoaded, currentTheme, settingsTick, verseReferencesToggledOn, userBookmarksMap, userNotesMap, userHighlightsMap]);
+
+  const cardsContent2 = useMemo(() => {
+    if (!isSplitView) return null;
+    return renderCards(bibleData2, getLanguage2(), true);
+  }, [isSplitView, bibleData2, titlesData, headingsData, crossRefData, introData, activeCrossReference, location, expandedReferences, selectedVerses, chapterUserData, isUserDataLoaded, currentTheme, settingsTick, verseReferencesToggledOn, userBookmarksMap, userNotesMap, userHighlightsMap]);
 
   // Separate effect for History logging to avoid re-logging on local state updates
   useEffect(() => {
@@ -1152,6 +1195,9 @@ function Content({ book, chapter, verse }) {
     return `${bookName} ${chapterNum}:${rangeStr}`;
   };
 
+  const lang1 = getLanguage() || 'Malayalam';
+  const lang2 = getLanguage2();
+
   return (
     <>
       <section className="py-2 mb-5">
@@ -1162,7 +1208,43 @@ function Content({ book, chapter, verse }) {
                 <div className="container my-2">
                   <div className="row row-cols-1 justify-content-center">
                     {titleContent}
-                    {cardsContent}
+                    {isSplitView ? (
+                      <div className="split-view-container">
+                        {/* Desktop Header Row (Hidden on Mobile) */}
+                        <div className="split-view-headers-row d-none d-md-flex">
+                          <div className="split-view-header-col split-view-header-col-1">
+                            {lang1}
+                          </div>
+                          <div className="split-view-header-col split-view-header-col-2">
+                            {lang2}
+                          </div>
+                        </div>
+                        
+                        {/* Panes Container */}
+                        <div className="split-view-panes-row">
+                          <div className="split-pane split-pane-1">
+                            {/* Mobile Header (Hidden on Desktop) */}
+                            <div className="pane-header d-md-none">
+                              <span>{lang1}</span>
+                            </div>
+                            <div className="pane-content">
+                              {cardsContent}
+                            </div>
+                          </div>
+                          <div className="split-pane split-pane-2">
+                            {/* Mobile Header (Hidden on Desktop) */}
+                            <div className="pane-header d-md-none">
+                              <span>{lang2}</span>
+                            </div>
+                            <div className="pane-content">
+                              {cardsContent2}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      cardsContent
+                    )}
                     {navigationContent}
                   </div>
                 </div>
@@ -1243,6 +1325,11 @@ function Content({ book, chapter, verse }) {
           onToggleReferences={handleToggleReferences}
           hasReferencesShown={areReferencesShownForSelectedVerses()}
           globalRefsEnabled={areReferencesEnabled()}
+          isSplitView={isSplitView}
+          bibleData2={bibleData2}
+          language={lang1}
+          language2={lang2}
+          titlesData={titlesData}
         />
       )}
 

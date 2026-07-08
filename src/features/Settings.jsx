@@ -5,7 +5,7 @@ import Modal from 'react-bootstrap/Modal';
 import Tab from 'react-bootstrap/Tab';
 import Nav from 'react-bootstrap/Nav';
 import { getTranslation } from '../config/SiteTranslations';
-import { handleFontSize, handleCompact, getCacheData, getLanguage, setLanguage } from '../config/Utils';
+import { handleFontSize, handleCompact, getCacheData, getLanguage, setLanguage, getLanguage2, setLanguage2, isSplitViewEnabled, setSplitViewEnabled } from '../config/Utils';
 import { clearHistory, clearAllNotes, clearAllHighlights, clearAllBookmarks, clearAllData, getBookmarks, getNotes, getHighlights, getHistory, countBookmarks, countNotes, countHighlights, countHistory, onVerseStorageChange } from '../config/VerseStorage';
 
 // Lazy load nested modal lists to support modular code-splitting
@@ -50,6 +50,8 @@ function Settings() {
 
   const [theme, setTheme] = useState('light');
   const [bibleLanguage, setBibleLanguage] = useState('Malayalam');
+  const [bibleLanguage2, setBibleLanguage2] = useState('English');
+  const [isSplitView, setIsSplitView] = useState(false);
   const [fontSize, setFontSize] = useState(6);
   const [isThemeChecked, setIsThemeChecked] = useState(false);
   const [isCompactChecked, setIsCompactChecked] = useState(false);
@@ -68,6 +70,12 @@ function Settings() {
     }
     document.documentElement.setAttribute('data-bs-theme', currentTheme || 'dark');
     initializeLanguageFromQuery();
+
+    const splitViewEnabled = isSplitViewEnabled();
+    setIsSplitView(splitViewEnabled);
+
+    const lang2 = getLanguage2();
+    setBibleLanguage2(lang2);
 
     const fontSizeValue = localStorage.getItem('fontSize');
     setFontSize(fontSizeValue || 4);
@@ -112,6 +120,33 @@ function Settings() {
       const newLanguage = e.target.value;
       setBibleLanguage(newLanguage);
       setLanguage(newLanguage);
+      window.dispatchEvent(new Event('settingsChange'));
+    }
+  };
+
+  const handleSplitViewToggle = () => {
+    const newVal = !isSplitView;
+    setIsSplitView(newVal);
+    setSplitViewEnabled(newVal);
+    window.dispatchEvent(new Event('settingsChange'));
+  };
+
+  const handleLanguage1Change = (e) => {
+    const confirmed = window.confirm('Are you sure you want to change Language 1?');
+    if (confirmed) {
+      const newLanguage = e.target.value;
+      setBibleLanguage(newLanguage);
+      setLanguage(newLanguage);
+      window.dispatchEvent(new Event('settingsChange'));
+    }
+  };
+
+  const handleLanguage2Change = (e) => {
+    const confirmed = window.confirm('Are you sure you want to change Language 2?');
+    if (confirmed) {
+      const newLanguage = e.target.value;
+      setBibleLanguage2(newLanguage);
+      setLanguage2(newLanguage);
       window.dispatchEvent(new Event('settingsChange'));
     }
   };
@@ -487,19 +522,69 @@ function Settings() {
                       <div className="mb-4">
                         <div className="settings-section-title">Language</div>
                         <div className={`${theme === 'light' ? 'bg-light border-0 shadow-sm' : 'bg-dark bg-opacity-50 border border-secondary border-opacity-25'} p-3 rounded-3`}>
-                          <label className="form-label mb-2" htmlFor="lanSwitch">Bible Language</label>
-                          <select
-                            className={`form-select ${theme === 'light' ? 'bg-white text-dark border-secondary' : 'bg-dark text-light border-secondary'}`}
-                            value={bibleLanguage}
-                            onChange={toggleLanguage}
-                            id="lanSwitch"
-                          >
-                            <option value="Malayalam">Malayalam</option>
-                            <option value="English">English</option>
-                            <option value="Hindi">Hindi</option>
-                            <option value="Tamil">Tamil</option>
-                            <option value="Telugu">Telugu</option>
-                          </select>
+                          <div className="d-flex justify-content-between align-items-center mb-3">
+                            <label className="form-check-label" htmlFor="splitViewSwitch">Split View (Read 2 languages)</label>
+                            <div className="form-check form-switch m-0">
+                              <input 
+                                className="form-check-input" 
+                                type="checkbox" 
+                                checked={isSplitView} 
+                                onChange={handleSplitViewToggle} 
+                                id="splitViewSwitch" 
+                              />
+                            </div>
+                          </div>
+
+                          {isSplitView ? (
+                            <div className="row g-2">
+                              <div className="col-6">
+                                <label className="form-label small mb-1" htmlFor="lanSwitch1">Language 1</label>
+                                <select
+                                  className={`form-select form-select-sm ${theme === 'light' ? 'bg-white text-dark border-secondary' : 'bg-dark text-light border-secondary'}`}
+                                  value={bibleLanguage}
+                                  onChange={handleLanguage1Change}
+                                  id="lanSwitch1"
+                                >
+                                  <option value="Malayalam">Malayalam</option>
+                                  <option value="English">English</option>
+                                  <option value="Hindi">Hindi</option>
+                                  <option value="Tamil">Tamil</option>
+                                  <option value="Telugu">Telugu</option>
+                                </select>
+                              </div>
+                              <div className="col-6">
+                                <label className="form-label small mb-1" htmlFor="lanSwitch2">Language 2</label>
+                                <select
+                                  className={`form-select form-select-sm ${theme === 'light' ? 'bg-white text-dark border-secondary' : 'bg-dark text-light border-secondary'}`}
+                                  value={bibleLanguage2}
+                                  onChange={handleLanguage2Change}
+                                  id="lanSwitch2"
+                                >
+                                  <option value="Malayalam">Malayalam</option>
+                                  <option value="English">English</option>
+                                  <option value="Hindi">Hindi</option>
+                                  <option value="Tamil">Tamil</option>
+                                  <option value="Telugu">Telugu</option>
+                                </select>
+                              </div>
+                            </div>
+                          ) : (
+                            <div>
+                              <label className="form-label mb-2" htmlFor="lanSwitch">Bible Language</label>
+                              <select
+                                className={`form-select ${theme === 'light' ? 'bg-white text-dark border-secondary' : 'bg-dark text-light border-secondary'}`}
+                                value={bibleLanguage}
+                                onChange={toggleLanguage}
+                                id="lanSwitch"
+                              >
+                                <option value="Malayalam">Malayalam</option>
+                                <option value="English">English</option>
+                                <option value="Hindi">Hindi</option>
+                                <option value="Tamil">Tamil</option>
+                                <option value="Telugu">Telugu</option>
+                              </select>
+                            </div>
+                          )}
                         </div>
                       </div>
 

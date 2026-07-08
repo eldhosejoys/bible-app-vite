@@ -83,23 +83,26 @@ export const siteConfig = () => {
   return config;
 };
 
-export const getBible =  () => {
-  const bibleLanguage = getLanguage();
+export const getBibleUrlForLanguage = (bibleLanguage) => {
   if(!bibleLanguage || bibleLanguage == 'Malayalam'){
-    setLanguage('Malayalam');
     return siteConfig().bibleurl;
   }else if(bibleLanguage == 'Hindi'){
-    setLanguage('Hindi');
     return siteConfig().hin_bibleurl;
   }else if(bibleLanguage == 'Tamil'){
-    setLanguage('Tamil');
     return siteConfig().tam_bibleurl;
   }else if(bibleLanguage == 'Telugu'){
-    setLanguage('Telugu');
     return siteConfig().telu_bibleurl;
   }else{
     return siteConfig().eng_bibleurl;
   }
+};
+
+export const getBible =  () => {
+  const bibleLanguage = getLanguage();
+  if(!bibleLanguage || bibleLanguage == 'Malayalam'){
+    setLanguage('Malayalam');
+  }
+  return getBibleUrlForLanguage(bibleLanguage);
 };
 
 // Map of book abbreviations → numbers (Protestant 66)

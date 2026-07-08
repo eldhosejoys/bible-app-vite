@@ -30,7 +30,12 @@ function VerseActionToolbar({
     onToggleReferences,  // Callback to toggle references for selected verses
     hasReferencesShown = false,  // Whether any selected verse has references shown
     globalRefsEnabled = false,  // Whether global show references is ON
-    explicitVerses = null
+    explicitVerses = null,
+    isSplitView = false,
+    bibleData2 = null,
+    language = 'Malayalam',
+    language2 = '',
+    titlesData = null
 }) {
     const [showHighlightModal, setShowHighlightModal] = useState(false);
     const [actionFeedback, setActionFeedback] = useState('');
@@ -152,27 +157,60 @@ function VerseActionToolbar({
         });
         if (currentGroup.length > 0) groups.push(currentGroup);
 
-        // 2. Format each group as "Text\n(Reference)"
-        const formattedBlocks = groups.map(group => {
-            // Text: join text of all verses in the group without verse numbers
-            const text = group.map(v => v.t).join(' ');
+        // 2. Format each group
+        let finalString = '';
 
-            // Reference: Book Chapter:VerseRange
-            const first = group[0];
-            const last = group[group.length - 1];
+        if (isSplitView && bibleData2) {
+            const formattedBlocks = groups.map(group => {
+                const first = group[0];
+                const last = group[group.length - 1];
+                const cNum = first.c;
+                const vRange = first.v === last.v ? `${first.v}` : `${first.v}-${last.v}`;
 
-            // Try to get book name from verse object (Search) or from component props (Content)
-            const bName = first.bookName || chapterName || `Book ${first.b}`;
-            const cNum = first.c;
-            const vRange = first.v === last.v ? `${first.v}` : `${first.v}-${last.v}`;
+                // Resolve language-specific book names using titlesData
+                const titleObj = titlesData ? titlesData.find(t => String(t.n) == String(first.b || book)) : null;
 
-            const groupRef = `${bName} ${cNum}:${vRange}`;
+                // Resolve Lang 1 Book Name & Ref
+                const bName1 = titleObj 
+                    ? (language === 'Malayalam' ? titleObj.bm : titleObj.be)
+                    : (first.bookName || chapterName || `Book ${first.b}`);
+                const groupRef1 = `${bName1} ${cNum}:${vRange}`;
 
-            return `${text}\n(${groupRef})`;
-        });
+                // Resolve Lang 2 Book Name & Ref
+                const bName2 = titleObj 
+                    ? (language2 === 'Malayalam' ? titleObj.bm : titleObj.be)
+                    : `Book ${first.b || book}`;
+                const groupRef2 = `${bName2} ${cNum}:${vRange}`;
 
-        // Join all blocks with double newline for clear separation
-        const finalString = formattedBlocks.join('\n\n');
+                // Language 1 text
+                const text1 = group.map(v => v.t).join(' ');
+
+                // Language 2 text
+                const groupVerseNums = group.map(v => Number(v.v));
+                const group2 = bibleData2.filter(v =>
+                    Number(v.b) == (first.b || book) &&
+                    Number(v.c) == (first.c || chapter) &&
+                    groupVerseNums.includes(Number(v.v))
+                ).sort((a, b) => a.v - b.v);
+                const text2 = group2.map(v => v.t).join(' ');
+
+                return `${text1}\n(${groupRef1})\n\n${text2}\n(${groupRef2})`;
+            });
+            finalString = formattedBlocks.join('\n\n');
+        } else {
+            const formattedBlocks = groups.map(group => {
+                const text = group.map(v => v.t).join(' ');
+                const first = group[0];
+                const last = group[group.length - 1];
+                const bName = first.bookName || chapterName || `Book ${first.b}`;
+                const cNum = first.c;
+                const vRange = first.v === last.v ? `${first.v}` : `${first.v}-${last.v}`;
+                const groupRef = `${bName} ${cNum}:${vRange}`;
+
+                return `${text}\n(${groupRef})`;
+            });
+            finalString = formattedBlocks.join('\n\n');
+        }
 
         try {
             await navigator.clipboard.writeText(finalString);
