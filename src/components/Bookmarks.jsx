@@ -42,7 +42,6 @@ function Bookmarks({ inModal = false, onNavigate }) {
         };
 
         fetchData();
-        fetchData();
         loadBookmarks();
 
         const unsubscribe = onVerseStorageChange(() => {

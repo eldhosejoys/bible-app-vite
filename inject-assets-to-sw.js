@@ -10,17 +10,19 @@ const indexHtmlPath = path.join(distDir, 'index.html');
 const swSrcPath = path.join(__dirname, 'public', 'sw.js');
 const swDistPath = path.join(distDir, 'sw.js');
 
-// Read the built index.html
-const indexHtml = fs.readFileSync(indexHtmlPath, 'utf-8');
+// Read all JS and CSS assets directly from the dist/assets directory
+// to ensure all code-split chunk files are pre-cached.
+const assetsDir = path.join(distDir, 'assets');
+let assetFiles = [];
 
-// Extract JS and CSS file paths from the HTML
-const jsMatches = indexHtml.match(/src="(\/assets\/[^"]+\.js)"/g) || [];
-const cssMatches = indexHtml.match(/href="(\/assets\/[^"]+\.css)"/g) || [];
-
-const jsFiles = jsMatches.map(m => m.match(/src="([^"]+)"/)[1]);
-const cssFiles = cssMatches.map(m => m.match(/href="([^"]+)"/)[1]);
-
-const assetFiles = [...jsFiles, ...cssFiles];
+if (fs.existsSync(assetsDir)) {
+    const files = fs.readdirSync(assetsDir);
+    assetFiles = files
+        .filter(f => f.endsWith('.js') || f.endsWith('.css'))
+        .map(f => `/assets/${f}`);
+} else {
+    console.warn('⚠️ dist/assets directory not found!');
+}
 
 console.log('📦 Found build assets to pre-cache:');
 assetFiles.forEach(f => console.log(`   - ${f}`));

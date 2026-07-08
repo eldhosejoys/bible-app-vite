@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { getHistory, clearHistory, getHistoryDetails, onVerseStorageChange, countHistory } from '../config/VerseStorage';
 import { getTranslation } from '../config/SiteTranslations';
@@ -64,52 +64,81 @@ function History({ inModal = false, onNavigate }) {
         return () => unsubscribe();
     }, [inModal]);
 
+    const hasMoreRef = useRef(hasMore);
+    const loadingMoreRef = useRef(loadingMore);
+    const offsetRef = useRef(offset);
+
+    // Sync refs with state changes
+    useEffect(() => { hasMoreRef.current = hasMore; }, [hasMore]);
+    useEffect(() => { loadingMoreRef.current = loadingMore; }, [loadingMore]);
+    useEffect(() => { offsetRef.current = offset; }, [offset]);
+
+    // Simple throttle helper to limit scroll event executions
+    const throttle = (func, limit) => {
+        let inThrottle;
+        return function() {
+            const args = arguments;
+            const context = this;
+            if (!inThrottle) {
+                func.apply(context, args);
+                inThrottle = true;
+                setTimeout(() => inThrottle = false, limit);
+            }
+        }
+    };
+
     const loadMoreHistory = async (reset = false) => {
-        if (!reset && (!hasMore || loadingMore)) return;
+        if (!reset && (!hasMoreRef.current || loadingMoreRef.current)) return;
 
         setLoadingMore(true);
+        loadingMoreRef.current = true;
         if (reset) setIsLoading(true);
 
-        const currentOffset = reset ? 0 : offset;
+        const currentOffset = reset ? 0 : offsetRef.current;
         const data = await getHistory(ITEMS_PER_PAGE, currentOffset);
 
         if (reset) {
             setHistory(data);
             setOffset(ITEMS_PER_PAGE);
+            offsetRef.current = ITEMS_PER_PAGE;
         } else {
             setHistory(prev => [...prev, ...data]);
             setOffset(prev => prev + ITEMS_PER_PAGE);
+            offsetRef.current = offsetRef.current + ITEMS_PER_PAGE;
         }
 
         if (data.length < ITEMS_PER_PAGE) {
             setHasMore(false);
+            hasMoreRef.current = false;
         } else {
             setHasMore(true);
+            hasMoreRef.current = true;
         }
 
         setLoadingMore(false);
+        loadingMoreRef.current = false;
         if (reset) setIsLoading(false);
     };
 
-    const handleScroll = (e) => {
+    const handleScroll = throttle((e) => {
         const { scrollTop, clientHeight, scrollHeight } = e.target;
         if (scrollHeight - scrollTop <= clientHeight + 100) {
             loadMoreHistory();
         }
-    };
+    }, 100);
 
     // For modal, attach scroll listener to window or specific container
     useEffect(() => {
         if (!inModal) {
-            const onScroll = () => {
+            const onScroll = throttle(() => {
                 if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 500) {
                     loadMoreHistory();
                 }
-            };
+            }, 100);
             window.addEventListener('scroll', onScroll);
             return () => window.removeEventListener('scroll', onScroll);
         }
-    }, [inModal, hasMore, loadingMore, offset]); // Add deps to ensure closure captures latest state
+    }, [inModal]); // Add deps to ensure closure captures latest state
 
     const getReference = (item) => {
         if (!titlesData) return "...";

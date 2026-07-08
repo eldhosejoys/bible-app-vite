@@ -1,5 +1,5 @@
 import { Link, useParams, useLocation, useNavigate } from "react-router-dom";
-import { useState, useEffect, useRef, React, Fragment } from "react";
+import { useState, useEffect, useRef, useMemo, React, Fragment } from "react";
 import axios from "axios";
 import { siteConfig, getBible } from "../config/siteConfig";
 import { getTranslation } from '../config/SiteTranslations';
@@ -47,9 +47,6 @@ function Content({ book, chapter, verse }) {
   const navigate = useNavigate();
 
   // --- STATE ---
-  const [cards, setCards] = useState([]);
-  const [title, setTitle] = useState([]);
-  const [navigation, setNavigation] = useState([]);
   const [chaptername, setChaptername] = useState("");
   const [activeCrossReference, setActiveCrossReference] = useState({});
   const [expandedReferences, setExpandedReferences] = useState({});
@@ -78,12 +75,47 @@ function Content({ book, chapter, verse }) {
   const [isUserDataLoaded, setIsUserDataLoaded] = useState(false);
   const [settingsTick, setSettingsTick] = useState(0);
 
+  // Optimized O(1) Lookup Maps from chapterUserData
+  const userBookmarksMap = useMemo(() => {
+    const map = new Map();
+    chapterUserData.bookmarks.forEach(b => {
+      b.v?.forEach(v => {
+        if (!map.has(v)) map.set(v, []);
+        map.get(v).push(b);
+      });
+    });
+    return map;
+  }, [chapterUserData.bookmarks]);
+
+  const userNotesMap = useMemo(() => {
+    const map = new Map();
+    chapterUserData.notes.forEach(n => {
+      n.v?.forEach(v => {
+        if (!map.has(v)) map.set(v, []);
+        map.get(v).push(n);
+      });
+    });
+    return map;
+  }, [chapterUserData.notes]);
+
+  const userHighlightsMap = useMemo(() => {
+    const map = new Map();
+    chapterUserData.highlights.forEach(h => {
+      h.v?.forEach(v => {
+        map.set(v, h);
+      });
+    });
+    return map;
+  }, [chapterUserData.highlights]);
+
   const itemsRef = useRef([]);
   const itemsRef2 = useRef([]);
   const itemsRef3 = useRef([]);
   const highlightedElementsRef = useRef({ verse: null, button: null, timer: null });
   const tooltipTimeoutRef = useRef(null);
   const lastScrolledKeyRef = useRef(null);
+  const loadedBibleUrlRef = useRef(null);
+  const loadedBookRef = useRef(null);
 
   // Fetch user data (bookmarks, notes, highlights)
   useEffect(() => {
@@ -302,43 +334,75 @@ function Content({ book, chapter, verse }) {
   // --- DATA FETCHING EFFECT (Bible Text, Titles, etc) ---
   useEffect(() => {
     window.speechSynthesis.cancel();
-    setCards([<div className="spinner-grow text-center" key="loading" role="status"><span className="visually-hidden">Loading...</span></div>]);
 
-    // Reset all state on navigation
+    // Reset temporary selection and scroll states on navigation
     setActiveCrossReference({});
-    setBibleData(null);
-    setIsUserDataLoaded(false); // Reset user data loaded flag on navigation
-    setTitlesData(null);
-    setHeadingsData(null);
-    setCrossRefData(null);
-    setIntroData(null);
     setSelectedVerses([]);
     setIsSelectionMode(false);
     itemsRef.current = [];
     itemsRef2.current = [];
     itemsRef3.current = [];
 
+    const currentBibleUrl = getBible();
+    const bibleUrlChanged = loadedBibleUrlRef.current !== currentBibleUrl;
+    const bookChanged = loadedBookRef.current !== params.book;
+
+    // Reset user data loaded flag on navigation
+    setIsUserDataLoaded(false);
+
+    // Reset data states only when strictly necessary to avoid flickering
+    if (bibleUrlChanged) {
+      setBibleData(null);
+    }
+    if (bookChanged) {
+      setHeadingsData(null);
+      setCrossRefData(null);
+    }
+
     const fetchData = async () => {
       try {
-        const [titles, bible, headings, crossRefs, intros] = await Promise.all([
-          getAllTitles(),
-          getCacheData('cache', getBible()).then(cached => cached || axios.get(getBible()).then(res => res.data)),
-          getHeadings(),
-          getCrossRefs(),
-          getIntroInfos()
-        ]);
+        // Fetch static title resources once
+        let titles = titlesData;
+        if (!titles) {
+          titles = await getAllTitles();
+          if (titles) setTitlesData(titles);
+        }
 
-        if (titles) {
-          titlenav(titles);
-          setTitlesData(titles);
+        // Fetch static intros once
+        let intros = introData;
+        if (!intros) {
+          intros = await getIntroInfos();
+          if (intros) setIntroData(intros);
         }
-        if (bible) {
-          addDataIntoCache('cache', getBible(), bible);
-          setBibleData(bible);
+
+        // Fetch translation dynamically when changed
+        let bible = bibleData;
+        if (bibleUrlChanged || !bible) {
+          bible = await getCacheData('cache', currentBibleUrl).then(cached => cached || axios.get(currentBibleUrl).then(res => res.data));
+          if (bible) {
+            addDataIntoCache('cache', currentBibleUrl, bible);
+            setBibleData(bible);
+            loadedBibleUrlRef.current = currentBibleUrl;
+          }
         }
-        setHeadingsData(headings);
-        setCrossRefData(crossRefs);
-        setIntroData(intros);
+
+        // Fetch headings if book changed
+        let headings = headingsData;
+        if (bookChanged || !headings) {
+          headings = await getHeadings();
+          setHeadingsData(headings);
+        }
+
+        // Fetch cross refs if book changed
+        let crossRefs = crossRefData;
+        if (bookChanged || !crossRefs) {
+          crossRefs = await getCrossRefs();
+          setCrossRefData(crossRefs);
+        }
+
+        if (bookChanged) {
+          loadedBookRef.current = params.book;
+        }
 
       } catch (error) {
         console.error("Error fetching page data:", error);
@@ -347,6 +411,19 @@ function Content({ book, chapter, verse }) {
 
     fetchData();
   }, [location, settingsTick]);
+
+  // Effect to manage document title and active chapter name side effects
+  useEffect(() => {
+    if (!titlesData) return;
+    const r = titlesData.filter(obj => obj.n == params.book);
+    if (!r.length) return;
+
+    const h_lang = !getLanguage() || getLanguage() === "Malayalam" ? r[0].bm : r[0].be;
+    document.title = params.verse 
+      ? `${h_lang} (${params.chapter}:${params.verse}) | ${getTranslation().siteTitle}` 
+      : `${h_lang} (${params.chapter}) | ${getTranslation().siteTitle}`;
+    setChaptername(h_lang);
+  }, [titlesData, params.book, params.chapter, params.verse]);
 
   // --- UI RENDERING HELPERS ---
   const renderCrossReferences = (references, verseIndex, verseNums = []) => {
@@ -406,8 +483,8 @@ function Content({ book, chapter, verse }) {
   const renderVerseIndicators = (verseNum, groupInfo = null) => {
     const indicators = [];
 
-    // Get ALL bookmarks that contain this verse (from local state)
-    const bookmarks = chapterUserData.bookmarks.filter(b => b.v && b.v.includes(verseNum));
+    // Get ALL bookmarks that contain this verse (from pre-computed map)
+    const bookmarks = userBookmarksMap.get(verseNum) || [];
 
     bookmarks.forEach((bookmark, idx) => {
       // Within a group, only show bookmark icon on the first verse of this bookmark that's visible in the group
@@ -439,8 +516,8 @@ function Content({ book, chapter, verse }) {
       }
     });
 
-    // Get ALL notes that contain this verse (from local state)
-    const notes = chapterUserData.notes.filter(n => n.v && n.v.includes(verseNum));
+    // Get ALL notes that contain this verse (from pre-computed map)
+    const notes = userNotesMap.get(verseNum) || [];
 
     notes.forEach((note, idx) => {
       // Within a group, only show note icon on the first verse of this note that's visible in the group
@@ -529,19 +606,15 @@ function Content({ book, chapter, verse }) {
   };
 
   const getVerseHighlightColor = (verseNum) => {
-    const highlight = chapterUserData.highlights.find(h => h.v && h.v.includes(verseNum));
+    const highlight = userHighlightsMap.get(verseNum);
     return highlight?.h || null;
   };
 
-  // --- UI RENDERING EFFECT ---
-  useEffect(() => {
+  // --- UI RENDERING useMemo (cardsContent) ---
+  const cardsContent = useMemo(() => {
     // Return early if essential data isn't loaded yet
     if (!bibleData || !titlesData || !isUserDataLoaded) {
-      if (!bibleData || !titlesData || !isUserDataLoaded) {
-        // Keep spinner active
-        setCards([<div className="spinner-grow text-center" key="loading" role="status"><span className="visually-hidden">Loading...</span></div>]);
-      }
-      return;
+      return [<div className="spinner-grow text-center" key="loading" role="status"><span className="visually-hidden">Loading...</span></div>];
     }
 
     // Get user preferences from localStorage
@@ -549,6 +622,7 @@ function Content({ book, chapter, verse }) {
     const currentCompact = localStorage.getItem('compact') === 'true';
     const theme = currentTheme;
     const colorText = theme === 'dark' ? 'text-warning' : 'text-danger';
+
     // --- RENDER BOOK INFO PAGE ---
     if (params.chapter === 'info') {
       let infoContent = [];
@@ -584,7 +658,7 @@ function Content({ book, chapter, verse }) {
           </div>
         );
       }
-      setCards(infoContent);
+      return infoContent;
 
       // --- RENDER CHAPTER CONTENT (VERSES) ---
     } else if (params.chapter !== 'info') {
@@ -633,6 +707,14 @@ function Content({ book, chapter, verse }) {
           const allHaveSameHighlight = highlightColors.every(c => c === highlightColors[0] && c !== null && c !== undefined);
           const rangeHighlightColor = allHaveSameHighlight ? highlightColors[0] : null;
 
+          // Temporary highlight (url selected verse range) when no permanent highlight color is present
+          const isTempHighlighted = !rangeHighlightColor;
+          const cardStyle = rangeHighlightColor
+            ? { backgroundColor: rangeHighlightColor, color: '#333' }
+            : isTempHighlighted
+              ? { backgroundColor: '#faebd7', color: '#000' }
+              : {};
+
           // Visual Merging Logic (Selection-based) for URL Group
           const isGroupSelected = isVerseSelected(startVerse);
           const headingInfo = headingsData?.find(h => h.c == params.chapter && h.v == startVerse);
@@ -674,7 +756,7 @@ function Content({ book, chapter, verse }) {
                       itemsRef3.current[i + k] = el;
                     }
                   }}
-                  style={rangeHighlightColor ? { backgroundColor: rangeHighlightColor, color: '#333' } : {}}
+                  style={cardStyle}
                 >
                   <div className="d-flex flex-row row-col-3 g-2 text-break">
                     <div className={`col text-left words-text fs-${currentFontSize}`}>
@@ -689,7 +771,7 @@ function Content({ book, chapter, verse }) {
                               <Link
                                 className={`text-decoration-none fw-bold words-text fs-${currentFontSize}`}
                                 to={`/${params.book}/${params.chapter}/${verse.v}`}
-                                style={rangeHighlightColor || vHighlight ? { color: '#333' } : {}}
+                                style={rangeHighlightColor || vHighlight || isTempHighlighted ? { color: '#333' } : {}}
                               >
                                 {verse.v}.
                               </Link>
@@ -770,6 +852,18 @@ function Content({ book, chapter, verse }) {
             const rangeHighlightColor = groupKey.type === 'highlight' ? groupKey.data.h :
               groupVerses.map(v => getVerseHighlightColor(Number(v.v))).find(c => c);
 
+            // Temporary highlight for selected verse matching this stored group
+            const hasOverlapWithUrl = startVerse && endVerse && groupVerses.some(gv => {
+              const vNum = Number(gv.v);
+              return vNum >= startVerse && vNum <= endVerse;
+            });
+            const isTempHighlighted = !rangeHighlightColor && hasOverlapWithUrl;
+            const cardStyle = rangeHighlightColor
+              ? { backgroundColor: rangeHighlightColor, color: '#333' }
+              : isTempHighlighted
+                ? { backgroundColor: '#faebd7', color: '#000' }
+                : {};
+
             // Visual Merging Logic (Selection-based) for Stored Group
             const isGroupSelected = isVerseSelected(groupStartV);
             const nextHeadingInfo = headingsData?.find(h => h.c == params.chapter && h.v == (groupEndV + 1));
@@ -808,7 +902,7 @@ function Content({ book, chapter, verse }) {
                         itemsRef3.current[i + k] = el;
                       }
                     }}
-                    style={rangeHighlightColor ? { backgroundColor: rangeHighlightColor, color: '#333' } : {}}
+                    style={cardStyle}
                   >
                     <div className="d-flex flex-row row-col-3 g-2 text-break">
                       <div className={`col text-left words-text fs-${currentFontSize}`}>
@@ -821,7 +915,7 @@ function Content({ book, chapter, verse }) {
                                 <Link
                                   className={`text-decoration-none fw-bold words-text fs-${currentFontSize}`}
                                   to={`/${params.book}/${params.chapter}/${v.v}`}
-                                  style={rangeHighlightColor ? { color: '#333' } : {}}
+                                  style={rangeHighlightColor || isTempHighlighted ? { color: '#333' } : {}}
                                 >
                                   {v.v}.
                                 </Link>
@@ -843,6 +937,14 @@ function Content({ book, chapter, verse }) {
             // SINGLE VERSE CARD
             const highlightColor = getVerseHighlightColor(verseNum);
             const verseCrossReferences = Array.isArray(crossRefData) ? crossRefData.filter(cr => cr.c == params.chapter && cr.v == verseData.v) : [];
+
+            // Temporary highlight for selected verse in URL
+            const isTempHighlighted = !highlightColor && verseNum >= startVerse && verseNum <= endVerse;
+            const cardStyle = highlightColor
+              ? { backgroundColor: highlightColor, color: '#333' }
+              : isTempHighlighted
+                ? { backgroundColor: '#faebd7', color: '#000' }
+                : {};
 
             // Visual Merging Logic (Selection-based)
             const nextHeadingInfo = headingsData?.find(h => h.c == params.chapter && h.v == (verseNum + 1));
@@ -873,7 +975,7 @@ function Content({ book, chapter, verse }) {
                   <div
                     className="card-body rounded col-12"
                     ref={el => itemsRef3.current[i] = el}
-                    style={highlightColor ? { backgroundColor: highlightColor, color: '#333' } : {}}
+                    style={cardStyle}
                   >
                     <div className="d-flex flex-row row-col-3 g-2 text-break">
                       <div className={`col text-left words-text fs-${currentFontSize}`}>
@@ -883,7 +985,7 @@ function Content({ book, chapter, verse }) {
                             className={`text-decoration-none fw-bold words-text fs-${currentFontSize}`}
                             to={`/${params.book}/${params.chapter}/${verseData.v}`}
                             onClick={(e) => e.stopPropagation()}
-                            style={highlightColor ? { color: '#333' } : {}}
+                            style={highlightColor || isTempHighlighted ? { color: '#333' } : {}}
                           >
                             {verseData.v}.
                           </Link>
@@ -898,9 +1000,9 @@ function Content({ book, chapter, verse }) {
           }
         }
       }
-      setCards(finalContent);
+      return finalContent;
     }
-  }, [bibleData, titlesData, headingsData, crossRefData, introData, activeCrossReference, location, expandedReferences, selectedVerses, chapterUserData, isUserDataLoaded, currentTheme, settingsTick, verseReferencesToggledOn]);
+  }, [bibleData, titlesData, headingsData, crossRefData, introData, activeCrossReference, location, expandedReferences, selectedVerses, chapterUserData, isUserDataLoaded, currentTheme, settingsTick, verseReferencesToggledOn, userBookmarksMap, userNotesMap, userHighlightsMap]);
 
   // Separate effect for History logging to avoid re-logging on local state updates
   useEffect(() => {
@@ -928,18 +1030,6 @@ function Content({ book, chapter, verse }) {
 
 
   useEffect(() => {
-    if (highlightedElementsRef.current.timer) {
-      clearTimeout(highlightedElementsRef.current.timer);
-    }
-    if (highlightedElementsRef.current.verse && highlightedElementsRef.current.isTemporary) {
-      highlightedElementsRef.current.verse.style.backgroundColor = '';
-      highlightedElementsRef.current.verse.style.color = '';
-    }
-    if (highlightedElementsRef.current.button) {
-      highlightedElementsRef.current.button.style.backgroundColor = '';
-    }
-    highlightedElementsRef.current = { verse: null, button: null, timer: null, isTemporary: false };
-
     const executionTimer = setTimeout(() => {
       const currentScrollKey = location.pathname;
 
@@ -954,35 +1044,6 @@ function Content({ book, chapter, verse }) {
             verseElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
             lastScrolledKeyRef.current = currentScrollKey;
           }
-
-          // Check for any permanent highlight in the range (since it might be a grouped card)
-          // Only treat as permanent highlight if ALL verses in the range share the SAME highlight
-          let permanentHighlightColor = null;
-          const distinctHighlights = new Set();
-
-          for (let v = startVerse; v <= endVerse; v++) {
-            const h = getVerseHighlightColor(v);
-            distinctHighlights.add(h);
-          }
-
-          // If we found exactly one highlight color and it is not null/undefined
-          if (distinctHighlights.size === 1) {
-            const val = distinctHighlights.values().next().value;
-            if (val) permanentHighlightColor = val;
-          }
-
-          if (!permanentHighlightColor) {
-            verseElement.style.backgroundColor = '#faebd7';
-            verseElement.style.color = '#000';
-            highlightedElementsRef.current.isTemporary = true;
-          } else {
-            // Restore permanent highlight if it was cleared by cleanup
-            verseElement.style.backgroundColor = permanentHighlightColor;
-            verseElement.style.color = '#333';
-            highlightedElementsRef.current.isTemporary = false;
-          }
-
-          highlightedElementsRef.current.verse = verseElement;
         }
       }
       else if (!params.verse && bibleData) {
@@ -1001,38 +1062,16 @@ function Content({ book, chapter, verse }) {
     }, 1);
 
     return () => clearTimeout(executionTimer);
-  }, [bibleData, location, cards, params.verse, params.book]);
+  }, [bibleData, location, params.verse, params.book]);
 
-  function titlenav(allTitles) {
-    const r = allTitles.filter(obj => obj.n == params.book);
-    if (!r.length) return;
+  const titleContent = useMemo(() => {
+    if (!titlesData) return null;
+    const r = titlesData.filter(obj => obj.n == params.book);
+    if (!r.length) return null;
 
     const h_lang = !getLanguage() || getLanguage() === "Malayalam" ? r[0].bm : r[0].be;
-    document.title = params.verse ? `${h_lang} (${params.chapter}:${params.verse}) | ${getTranslation().siteTitle}` : `${h_lang} (${params.chapter}) | ${getTranslation().siteTitle}`;
-    setChaptername(h_lang);
 
-    setNavigation(
-      <div className="row row-2 justify-content-center mt-4">
-        {(() => {
-          let tp = [];
-          if (params.chapter > 1) {
-            tp.push(<div key="prev-ch" className="col-auto mr-auto"><Link title={getTranslation().preChapter} to={`/${params.book}/${parseInt(params.chapter) - 1}`}><div className="arrowbutton card rounded-circle btn"><img src="/assets/images/arrow-left.svg" alt="prev" /></div></Link></div>);
-          }
-          if (params.book > 1 && params.chapter == 1) {
-            tp.push(<div key="prev-bk" className="col-auto mr-auto"><Link title={getTranslation().preBook} to={`/${parseInt(params.book) - 1}/1`}><div className="arrowbutton card rounded-circle btn"><img src="/assets/images/arrow-left.svg" alt="prev" /></div></Link></div>);
-          }
-          if (params.chapter < r[0].c) {
-            tp.push(<div key="next-ch" className="col-auto"><Link title={getTranslation().nextChapter} to={`/${params.book}/${parseInt(params.chapter) + 1}`}><div className="arrowbutton card rounded-circle btn"><img src="/assets/images/arrow-right.svg" alt="next" /></div></Link></div>);
-          }
-          if (params.book < 66 && params.chapter >= r[0].c) {
-            tp.push(<div key="next-bk" className="col-auto"><Link title={getTranslation().nextBook} to={`/${parseInt(params.book) + 1}/1`}><div className="arrowbutton card rounded-circle btn"><img src="/assets/images/arrow-right.svg" alt="next" /></div></Link></div>);
-          }
-          return tp;
-        })()}
-      </div>
-    );
-
-    setTitle(
+    return (
       <div className="text-center mb-2">
         <div className="d-flex justify-content-center align-items-center">
           {params.book > 1 && <div key="t-prev-bk"><Link title={getTranslation().preBook} to={`/${parseInt(params.book) - 1}/1`}><div className="arrowbutton card rounded-circle btn btn-sm"><img src="/assets/images/arrow-left.svg" alt="prev" /></div></Link></div>}
@@ -1059,7 +1098,33 @@ function Content({ book, chapter, verse }) {
         </div>
       </div>
     );
-  }
+  }, [titlesData, params.book, params.chapter]);
+
+  const navigationContent = useMemo(() => {
+    if (!titlesData) return null;
+    const r = titlesData.filter(obj => obj.n == params.book);
+    if (!r.length) return null;
+
+    let tp = [];
+    if (params.chapter > 1) {
+      tp.push(<div key="prev-ch" className="col-auto mr-auto"><Link title={getTranslation().preChapter} to={`/${params.book}/${parseInt(params.chapter) - 1}`}><div className="arrowbutton card rounded-circle btn"><img src="/assets/images/arrow-left.svg" alt="prev" /></div></Link></div>);
+    }
+    if (params.book > 1 && params.chapter == 1) {
+      tp.push(<div key="prev-bk" className="col-auto mr-auto"><Link title={getTranslation().preBook} to={`/${parseInt(params.book) - 1}/1`}><div className="arrowbutton card rounded-circle btn"><img src="/assets/images/arrow-left.svg" alt="prev" /></div></Link></div>);
+    }
+    if (params.chapter < r[0].c) {
+      tp.push(<div key="next-ch" className="col-auto"><Link title={getTranslation().nextChapter} to={`/${params.book}/${parseInt(params.chapter) + 1}`}><div className="arrowbutton card rounded-circle btn"><img src="/assets/images/arrow-right.svg" alt="next" /></div></Link></div>);
+    }
+    if (params.book < 66 && params.chapter >= r[0].c) {
+      tp.push(<div key="next-bk" className="col-auto"><Link title={getTranslation().nextBook} to={`/${parseInt(params.book) + 1}/1`}><div className="arrowbutton card rounded-circle btn"><img src="/assets/images/arrow-right.svg" alt="next" /></div></Link></div>);
+    }
+
+    return (
+      <div className="row row-2 justify-content-center mt-4">
+        {tp}
+      </div>
+    );
+  }, [titlesData, params.book, params.chapter]);
 
   const getNoteReference = (note) => {
     if (!titlesData || !note) return "...";
@@ -1096,9 +1161,9 @@ function Content({ book, chapter, verse }) {
               <section id="scroll-target">
                 <div className="container my-2">
                   <div className="row row-cols-1 justify-content-center">
-                    {title}
-                    {cards}
-                    {navigation}
+                    {titleContent}
+                    {cardsContent}
+                    {navigationContent}
                   </div>
                 </div>
               </section>

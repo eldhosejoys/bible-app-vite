@@ -1,10 +1,9 @@
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, Navigate } from "react-router-dom";
 import Content from "../components/Content";
 import { bookMap } from "../config/siteConfig";
 
 export default function VerseRoute() {
   const { book, chapterOrChapterVerse, verse } = useParams();
-  const navigate = useNavigate();
 
   // helper to normalize book param
   function getBookNumber(book) {
@@ -35,17 +34,13 @@ export default function VerseRoute() {
 
   // --- Navigation conditions ---
   if (!bookNum) {
-    navigate("/1/1");
-    return null;
+    return <Navigate to="/1/1" replace />;
   } else if (bookNum > 66) {
-    navigate("/66/1");
-    return null;
+    return <Navigate to="/66/1" replace />;
   } else if (bookNum < 1) {
-    navigate("/1/1");
-    return null;
+    return <Navigate to="/1/1" replace />;
   } else if ((!chapterNum || isNaN(parseInt(chapterNum)) || parseInt(chapterNum) <= 0) && chapterNum !== 'info') {
-    navigate(`/${bookNum}/1`);
-    return null;
+    return <Navigate to={`/${bookNum}/1`} replace />;
   }
 
   // --- Render content ---
@@ -56,8 +51,8 @@ export default function VerseRoute() {
     return <Content book={bookNum} chapter={chapterNum} />;
   }
   if (bookNum) {
-    console.log("Rendering book only ",bookNum);
-    return <Content book={bookNum} chapter={1}/>;
+    console.log("Rendering book only ", bookNum);
+    return <Content book={bookNum} chapter={1} />;
   }
   return null;
 }

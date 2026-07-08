@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import Button from 'react-bootstrap/Button';
 import Modal from 'react-bootstrap/Modal';
 import Tab from 'react-bootstrap/Tab';
@@ -7,10 +7,12 @@ import Nav from 'react-bootstrap/Nav';
 import { getTranslation } from '../config/SiteTranslations';
 import { handleFontSize, handleCompact, getCacheData, getLanguage, setLanguage } from '../config/Utils';
 import { clearHistory, clearAllNotes, clearAllHighlights, clearAllBookmarks, clearAllData, getBookmarks, getNotes, getHighlights, getHistory, countBookmarks, countNotes, countHighlights, countHistory, onVerseStorageChange } from '../config/VerseStorage';
-import Notes from '../components/Notes';
-import Highlights from '../components/Highlights';
-import History from '../components/History';
-import Bookmarks from '../components/Bookmarks';
+
+// Lazy load nested modal lists to support modular code-splitting
+const Notes = lazy(() => import('../components/Notes'));
+const Highlights = lazy(() => import('../components/Highlights'));
+const History = lazy(() => import('../components/History'));
+const Bookmarks = lazy(() => import('../components/Bookmarks'));
 
 function Settings() {
   const [showModal, setShowModal] = useState(false);
@@ -505,19 +507,27 @@ function Settings() {
                     </Tab.Pane>
 
                     <Tab.Pane eventKey="bookmarks" className="h-100">
-                      <Bookmarks inModal={true} onNavigate={handleCloseModal} />
+                      <Suspense fallback={<div className="text-center py-5"><div className="spinner-border text-primary" role="status"></div></div>}>
+                        <Bookmarks inModal={true} onNavigate={handleCloseModal} />
+                      </Suspense>
                     </Tab.Pane>
 
                     <Tab.Pane eventKey="notes" className="h-100">
-                      <Notes inModal={true} onNavigate={handleCloseModal} />
+                      <Suspense fallback={<div className="text-center py-5"><div className="spinner-border text-primary" role="status"></div></div>}>
+                        <Notes inModal={true} onNavigate={handleCloseModal} />
+                      </Suspense>
                     </Tab.Pane>
 
                     <Tab.Pane eventKey="highlights" className="h-100">
-                      <Highlights inModal={true} onNavigate={handleCloseModal} />
+                      <Suspense fallback={<div className="text-center py-5"><div className="spinner-border text-primary" role="status"></div></div>}>
+                        <Highlights inModal={true} onNavigate={handleCloseModal} />
+                      </Suspense>
                     </Tab.Pane>
 
                     <Tab.Pane eventKey="history" className="h-100">
-                      <History inModal={true} onNavigate={handleCloseModal} />
+                      <Suspense fallback={<div className="text-center py-5"><div className="spinner-border text-primary" role="status"></div></div>}>
+                        <History inModal={true} onNavigate={handleCloseModal} />
+                      </Suspense>
                     </Tab.Pane>
 
                     <Tab.Pane eventKey="data">

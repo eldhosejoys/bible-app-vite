@@ -1,11 +1,12 @@
 import { Link, useSearchParams, useNavigate, useLocation } from "react-router-dom";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, lazy, Suspense } from "react";
 import { transliterate, getCacheData, getLanguage } from '../config/Utils';
 import { siteConfig } from "../config/siteConfig";
-import Settings from "../features/Settings";
 import IndexButton from "../features/IndexButton";
 import { getTranslation } from '../config/SiteTranslations';
 import { bookMap } from "../config/siteConfig";
+
+const Settings = lazy(() => import("../features/Settings"));
 
 function Header({ value = '' }) {
   const [input, setInput] = useState(value);
@@ -183,7 +184,9 @@ function Header({ value = '' }) {
             </svg>
           </Link>
           <IndexButton />
-          <Settings />
+          <Suspense fallback={<button className="btn btn-primary btn-sm rounded-end" style={{ width: "32px", height: "31px" }}>⚙️</button>}>
+            <Settings />
+          </Suspense>
         </span>
       </div>
     </nav>

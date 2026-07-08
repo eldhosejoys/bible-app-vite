@@ -47,7 +47,6 @@ function Notes({ inModal = false, onNavigate }) {
         };
 
         fetchData();
-        fetchData();
         loadNotes();
 
         const unsubscribe = onVerseStorageChange(() => {

@@ -44,7 +44,6 @@ function Highlights({ inModal = false, onNavigate }) {
         };
 
         fetchData();
-        fetchData();
         loadHighlights();
 
         const unsubscribe = onVerseStorageChange(() => {
