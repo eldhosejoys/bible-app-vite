@@ -6,7 +6,7 @@
   "scripts": {
     "prebuild": "node updateEnv.js && node update-sw-version.js",
     "dev": "vite",
-    "build": "npm run prebuild && vite build && node inject-assets-to-sw.js",
+    "build": "npm run prebuild && vite build && node inject-assets-to-sw.js && node generate-ssg.js",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview"
   },
