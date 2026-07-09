@@ -112,7 +112,8 @@ function Content({ book, chapter, verse }) {
 
   const itemsRef = useRef([]);
   const itemsRef2 = useRef([]);
-  const itemsRef3 = useRef([]);
+  const pane1Ref = useRef(null);
+  const pane2Ref = useRef(null);
   const highlightedElementsRef = useRef({ verse: null, button: null, timer: null });
   const tooltipTimeoutRef = useRef(null);
   const lastScrolledKeyRef = useRef(null);
@@ -346,7 +347,6 @@ function Content({ book, chapter, verse }) {
     setIsSelectionMode(false);
     itemsRef.current = [];
     itemsRef2.current = [];
-    itemsRef3.current = [];
 
     const currentBibleUrl = getBible();
     const currentBibleUrl2 = isSplitViewEnabled() ? getBibleUrlForLanguage(getLanguage2()) : null;
@@ -699,7 +699,9 @@ function Content({ book, chapter, verse }) {
       const [startVerse, endVerse] = parseVerseRange(params.verse);
       
       if (!isSecondPane) {
-        itemsRef3.current = []; // Reset refs for the first pane only
+        itemsRef.current = []; // Reset refs for the first pane only
+      } else {
+        itemsRef2.current = []; // Reset refs for the second pane only
       }
 
       // Helper to identify grouping for a verse based on saved items
@@ -786,7 +788,11 @@ function Content({ book, chapter, verse }) {
                   ref={el => {
                     if (!isSecondPane) {
                       for (let k = 0; k < versesInRange.length; k++) {
-                        itemsRef3.current[i + k] = el;
+                        itemsRef.current[i + k] = el;
+                      }
+                    } else {
+                      for (let k = 0; k < versesInRange.length; k++) {
+                        itemsRef2.current[i + k] = el;
                       }
                     }
                   }}
@@ -930,7 +936,11 @@ function Content({ book, chapter, verse }) {
                     ref={el => {
                       if (!isSecondPane) {
                         for (let k = 0; k < groupVerses.length; k++) {
-                          itemsRef3.current[i + k] = el;
+                          itemsRef.current[i + k] = el;
+                        }
+                      } else {
+                        for (let k = 0; k < groupVerses.length; k++) {
+                          itemsRef2.current[i + k] = el;
                         }
                       }
                     }}
@@ -1006,7 +1016,9 @@ function Content({ book, chapter, verse }) {
                     className="card-body rounded col-12"
                     ref={el => {
                       if (!isSecondPane) {
-                        itemsRef3.current[i] = el;
+                        itemsRef.current[i] = el;
+                      } else {
+                        itemsRef2.current[i] = el;
                       }
                     }}
                     style={cardStyle}
@@ -1073,26 +1085,65 @@ function Content({ book, chapter, verse }) {
 
 
   useEffect(() => {
-    const executionTimer = setTimeout(() => {
-      const currentScrollKey = location.pathname;
+    // Wait until essential layout data has loaded to prevent premature scrolling.
+    const isLayoutReady = 
+      bibleData && 
+      isUserDataLoaded && 
+      crossRefData !== null && 
+      (!isSplitView || bibleData2);
 
-      if (params.verse && bibleData) {
+    if (!isLayoutReady) return;
+
+    const currentScrollKey = location.pathname;
+
+    const performScroll = () => {
+      if (params.verse) {
         const [startVerse, endVerse] = parseVerseRange(params.verse);
-        let verseIndex = parseInt(endVerse) - 1;
-        const verseElement = itemsRef3.current[verseIndex] || itemsRef3.current[itemsRef3.current.length - 1];
+        const targetVerseNum = startVerse || endVerse;
+        const currentChapterVerses = bibleData.filter(
+          obj => Number(obj.b) == params.book && Number(obj.c) == params.chapter
+        );
+        const verseIndex = currentChapterVerses.findIndex(v => Number(v.v) === targetVerseNum);
 
-        if (verseIndex >= 0 && verseElement) {
-          // Check if we already scrolled for this location to prevent re-scrolling on selection changes
+        if (verseIndex >= 0) {
+          const verseElement1 = itemsRef.current[verseIndex];
+          const verseElement2 = isSplitView && itemsRef2.current ? itemsRef2.current[verseIndex] : null;
+          const isMobileSplit = isSplitView && window.innerWidth < 768;
+
           if (lastScrolledKeyRef.current !== currentScrollKey) {
-            verseElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            lastScrolledKeyRef.current = currentScrollKey;
+            let scrolled = false;
+
+            if (isMobileSplit) {
+              // On mobile split view, panes have individual scrollbars, so we scroll both.
+              if (verseElement1) {
+                verseElement1.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                scrolled = true;
+              }
+              if (verseElement2) {
+                // Slight delay for the second pane to prevent scrolling conflicts
+                setTimeout(() => {
+                  verseElement2.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 50);
+                scrolled = true;
+              }
+            } else {
+              // On desktop split screen or single view, scrolling either scrolls the window.
+              const targetElement = verseElement1 || verseElement2;
+              if (targetElement) {
+                targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                scrolled = true;
+              }
+            }
+
+            if (scrolled) {
+              lastScrolledKeyRef.current = currentScrollKey;
+            }
           }
         }
-      }
-      else if (!params.verse && bibleData) {
+      } else {
         // Scroll to top if new location
         if (lastScrolledKeyRef.current !== currentScrollKey) {
-          const firstVerseElement = itemsRef3.current[0];
+          const firstVerseElement = itemsRef.current[0];
 
           if (firstVerseElement && params.book == '19') { // for psalms only we need to move to first verse in the chapter
             firstVerseElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -1102,10 +1153,81 @@ function Content({ book, chapter, verse }) {
           lastScrolledKeyRef.current = currentScrollKey;
         }
       }
-    }, 1);
+    };
 
-    return () => clearTimeout(executionTimer);
-  }, [bibleData, location, params.verse, params.book]);
+    // Use a small timeout to let the browser complete painting and layout
+    const timer = setTimeout(performScroll, 100);
+
+    return () => clearTimeout(timer);
+  }, [
+    bibleData,
+    bibleData2,
+    isUserDataLoaded,
+    crossRefData,
+    location.pathname,
+    params.verse,
+    params.book,
+    params.chapter,
+    isSplitView
+  ]);
+
+  // Bidirectional Scroll Sync for split screen view on mobile
+  useEffect(() => {
+    if (!isSplitView) return;
+
+    const pane1 = pane1Ref.current;
+    const pane2 = pane2Ref.current;
+    if (!pane1 || !pane2) return;
+
+    let activePane = null; // Tracks which pane the user is interacting with
+    let isSyncing = false; // Tracks if a scroll is programmatically triggered
+
+    const setPane1Active = () => { if (!isSyncing) activePane = 1; };
+    const setPane2Active = () => { if (!isSyncing) activePane = 2; };
+
+    const handleScroll1 = () => {
+      if (activePane !== 1 || window.innerWidth >= 768) return;
+      isSyncing = true;
+      const pct = pane1.scrollTop / (pane1.scrollHeight - pane1.clientHeight);
+      pane2.scrollTop = pct * (pane2.scrollHeight - pane2.clientHeight);
+      requestAnimationFrame(() => {
+        isSyncing = false;
+      });
+    };
+
+    const handleScroll2 = () => {
+      if (activePane !== 2 || window.innerWidth >= 768) return;
+      isSyncing = true;
+      const pct = pane2.scrollTop / (pane2.scrollHeight - pane2.clientHeight);
+      pane1.scrollTop = pct * (pane1.scrollHeight - pane1.clientHeight);
+      requestAnimationFrame(() => {
+        isSyncing = false;
+      });
+    };
+
+    // Interaction events to set the active scroll pane source
+    pane1.addEventListener('touchstart', setPane1Active, { passive: true });
+    pane2.addEventListener('touchstart', setPane2Active, { passive: true });
+    pane1.addEventListener('mouseenter', setPane1Active, { passive: true });
+    pane2.addEventListener('mouseenter', setPane2Active, { passive: true });
+    pane1.addEventListener('wheel', setPane1Active, { passive: true });
+    pane2.addEventListener('wheel', setPane2Active, { passive: true });
+
+    // Scroll sync events
+    pane1.addEventListener('scroll', handleScroll1, { passive: true });
+    pane2.addEventListener('scroll', handleScroll2, { passive: true });
+
+    return () => {
+      pane1.removeEventListener('touchstart', setPane1Active);
+      pane2.removeEventListener('touchstart', setPane2Active);
+      pane1.removeEventListener('mouseenter', setPane1Active);
+      pane2.removeEventListener('mouseenter', setPane2Active);
+      pane1.removeEventListener('wheel', setPane1Active);
+      pane2.removeEventListener('wheel', setPane2Active);
+      pane1.removeEventListener('scroll', handleScroll1);
+      pane2.removeEventListener('scroll', handleScroll2);
+    };
+  }, [isSplitView, bibleData, bibleData2, isUserDataLoaded]);
 
   const titleContent = useMemo(() => {
     if (!titlesData) return null;
@@ -1227,7 +1349,7 @@ function Content({ book, chapter, verse }) {
                             <div className="pane-header d-md-none">
                               <span>{lang1}</span>
                             </div>
-                            <div className="pane-content">
+                            <div className="pane-content" ref={pane1Ref}>
                               {cardsContent}
                             </div>
                           </div>
@@ -1236,7 +1358,7 @@ function Content({ book, chapter, verse }) {
                             <div className="pane-header d-md-none">
                               <span>{lang2}</span>
                             </div>
-                            <div className="pane-content">
+                            <div className="pane-content" ref={pane2Ref}>
                               {cardsContent2}
                             </div>
                           </div>

@@ -387,7 +387,7 @@ function Settings() {
         fullscreen="sm-down"
         scrollable={false}
       >
-        <Modal.Header closeButton closeVariant="white">
+        <Modal.Header closeButton closeVariant={theme === 'dark' ? 'white' : undefined}>
           <Modal.Title className="fw-bold">Settings</Modal.Title>
         </Modal.Header>
         <Modal.Body className="p-0">
