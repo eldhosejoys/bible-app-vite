@@ -74,47 +74,92 @@ export function highlightVerseText(text, query) {
     stem: getStem(t)
   }));
 
-  // EXACT MATCH: vivid bright yellow
-  const EXACT_STYLE = "class='text-dark' style='background-color: #fff952;'";
-  // VARIANT / STEM / SUFFIX MATCH: softer, lighter pastel yellow
-  const LIGHT_STYLE = "class='text-dark' style='background-color: #fffca8;'";
-
-  // Match words preserving surrounding punctuation and whitespace
-  const wordRegex = /([\p{L}\p{M}\p{N}]+)/gu;
+  const EXACT_BG = '#fff952';
+  const LIGHT_BG = '#fffca8';
 
   try {
-    return normalizedText.replace(wordRegex, (match) => {
-      const normWord = normalizeText(match);
+    // Break text into segments: words and non-words (whitespace, punctuation)
+    const tokens = [];
+    const tokenRegex = /([\p{L}\p{M}\p{N}]+|[^\p{L}\p{M}\p{N}]+)/gu;
+    let m;
 
-      // 1. Exact match check
+    while ((m = tokenRegex.exec(normalizedText)) !== null) {
+      const raw = m[0];
+      const isWord = /^[\p{L}\p{M}\p{N}]+$/u.test(raw);
+
+      if (!isWord) {
+        tokens.push({ text: raw, isWord: false, type: null });
+        continue;
+      }
+
+      const normWord = normalizeText(raw);
+      let matchType = null;
+
       if (exactTermSet.has(normWord)) {
-        return `<span ${EXACT_STYLE}>${match}</span>`;
-      }
+        matchType = 'exact';
+      } else {
+        const wordStem = getStem(normWord);
+        for (const { term, stem } of termStems) {
+          if (!stem || stem.length < 2) continue;
 
-      // 2. Variant / stem / inflection match check
-      const wordStem = getStem(normWord);
-
-      for (const { term, stem } of termStems) {
-        if (!stem || stem.length < 2) continue;
-
-        // Same stem (e.g. വെളിപ്പാടു vs വെളിപ്പാട് -> both stem to വെളിപ്പാട)
-        if (wordStem === stem) {
-          return `<span ${LIGHT_STYLE}>${match}</span>`;
-        }
-
-        // Word starts with query stem (e.g. വെളിപ്പാടും, യോഹന്നാന്റെ, loved)
-        if (stem.length >= 3 && normWord.startsWith(stem)) {
-          return `<span ${LIGHT_STYLE}>${match}</span>`;
-        }
-
-        // Query starts with word stem (e.g. query had extra suffix)
-        if (wordStem.length >= 3 && term.startsWith(wordStem)) {
-          return `<span ${LIGHT_STYLE}>${match}</span>`;
+          if (wordStem === stem) {
+            matchType = 'light';
+            break;
+          }
+          if (stem.length >= 3 && normWord.startsWith(stem)) {
+            matchType = 'light';
+            break;
+          }
+          if (wordStem.length >= 3 && term.startsWith(wordStem)) {
+            matchType = 'light';
+            break;
+          }
         }
       }
 
-      return match;
-    });
+      tokens.push({ text: raw, isWord: true, type: matchType });
+    }
+
+    // Assemble and merge adjacent highlighted words separated only by whitespace
+    const segments = [];
+
+    for (let i = 0; i < tokens.length; i++) {
+      const tok = tokens[i];
+
+      if (!tok.type) {
+        segments.push(tok.text);
+        continue;
+      }
+
+      let combinedText = tok.text;
+      let currentType = tok.type;
+
+      while (
+        i + 2 < tokens.length &&
+        !tokens[i + 1].isWord &&
+        /^\s+$/.test(tokens[i + 1].text) &&
+        tokens[i + 2].type !== null
+      ) {
+        const ws = tokens[i + 1].text;
+        const nextTok = tokens[i + 2];
+
+        if (nextTok.type === currentType) {
+          // Same style (e.g. both exact): merge into one continuous span
+          combinedText += ws + nextTok.text;
+          i += 2;
+        } else {
+          // Different style: include whitespace in current span so there is no gap
+          combinedText += ws;
+          i += 1;
+          break;
+        }
+      }
+
+      const bg = currentType === 'exact' ? EXACT_BG : LIGHT_BG;
+      segments.push(`<span class='text-dark' style='background-color: ${bg};'>${combinedText}</span>`);
+    }
+
+    return segments.join('');
   } catch (err) {
     return normalizedText;
   }
