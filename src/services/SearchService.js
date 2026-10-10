@@ -41,18 +41,27 @@ function escapeRegex(str) {
 export function highlightVerseText(text, query) {
   if (!text || !query) return text;
 
+  // Unicode NFC normalization merges decomposed 2-part vowels (e.g. േ + ാ into ോ)
+  const normalizedText = text.normalize('NFC');
+  const normalizedQuery = query.normalize('NFC');
+
   // Split query into individual words/tokens, trimming punctuation
-  const terms = query
+  const terms = normalizedQuery
     .trim()
     .split(/\s+/)
     .map(t => t.replace(/^[^\p{L}\p{M}\p{N}]+|[^\p{L}\p{M}\p{N}]+$/gu, ''))
     .filter(t => t.length > 0);
 
-  if (terms.length === 0) return text;
+  if (terms.length === 0) return normalizedText;
 
-  // Build pattern for each term, handling chillu variations
+  // Build pattern for each term, handling both vowel variations and chillu variations
   const patterns = terms.map(term => {
     let p = escapeRegex(term);
+    // Vowel sign variations (atomic vs decomposed 2-part vowels)
+    p = p.replace(/\u0D4B/g, '(?:\u0D4B|\u0D47\u0D3E)'); // ോ vs േ + ാ
+    p = p.replace(/\u0D4A/g, '(?:\u0D4A|\u0D46\u0D3E)'); // ൊ vs െ + ാ
+    p = p.replace(/\u0D4C/g, '(?:\u0D4C|\u0D46\u0D57)'); // ൌ vs െ + ൌ
+    // Chillu variations (atomic chillu vs virama + ZWJ)
     p = p.replace(/\u0D7A/g, '(?:\u0D7A|\u0D23\u0D4D\u200D)');
     p = p.replace(/\u0D7B/g, '(?:\u0D7B|\u0D28\u0D4D\u200D)');
     p = p.replace(/\u0D7C/g, '(?:\u0D7C|\u0D30\u0D4D\u200D)');
@@ -64,9 +73,9 @@ export function highlightVerseText(text, query) {
 
   try {
     const regex = new RegExp(`(${patterns.join('|')})`, 'gi');
-    return text.replace(regex, `<span class='text-dark' style='background-color: #fff952;'>$1</span>`);
+    return normalizedText.replace(regex, `<span class='text-dark' style='background-color: #fff952;'>$1</span>`);
   } catch (err) {
-    return text;
+    return normalizedText;
   }
 }
 
