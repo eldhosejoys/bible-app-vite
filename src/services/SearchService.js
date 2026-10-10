@@ -35,8 +35,22 @@ function escapeRegex(str) {
 }
 
 /**
- * Safely highlights all matched query terms in verse text without regex errors.
- * Also accounts for Malayalam chillu character variants so text highlights regardless of encoding.
+ * Extracts the base stem of a word for Malayalam and English:
+ * - Malayalam: strips terminal virama (്), vowel u (ു), anusvara (ം), or chillu letters (ൻ, ൽ, ർ, ൾ, ൺ, ൿ)
+ * - English: strips common grammatical inflection suffixes (ing, ed, es, s)
+ */
+export function getStem(word) {
+  let w = normalizeText(word);
+  w = w.replace(/[\u0D4D\u0D41\u0D02\u0D7A-\u0D7F]$/, '');
+  w = w.replace(/(ing|ed|es|s)$/i, '');
+  return w;
+}
+
+/**
+ * Highlights matched query terms in verse text:
+ * - Exact matches (identical word/term) are highlighted in the vivid current color (#fff952).
+ * - Morphological / stem / inflection variants (e.g. വെളിപ്പാട് vs വെളിപ്പാടു vs വെളിപ്പാടും, യോഹന്നാൻ vs യോഹന്നാന്റെ, love vs loved)
+ *   are highlighted in a softer, lighter pastel version (#fffca8).
  */
 export function highlightVerseText(text, query) {
   if (!text || !query) return text;
@@ -46,34 +60,61 @@ export function highlightVerseText(text, query) {
   const normalizedQuery = query.normalize('NFC');
 
   // Split query into individual words/tokens, trimming punctuation
-  const terms = normalizedQuery
+  const queryTerms = normalizedQuery
     .trim()
     .split(/\s+/)
     .map(t => t.replace(/^[^\p{L}\p{M}\p{N}]+|[^\p{L}\p{M}\p{N}]+$/gu, ''))
     .filter(t => t.length > 0);
 
-  if (terms.length === 0) return normalizedText;
+  if (queryTerms.length === 0) return normalizedText;
 
-  // Build pattern for each term, handling both vowel variations and chillu variations
-  const patterns = terms.map(term => {
-    let p = escapeRegex(term);
-    // Vowel sign variations (atomic vs decomposed 2-part vowels)
-    p = p.replace(/\u0D4B/g, '(?:\u0D4B|\u0D47\u0D3E)'); // ോ vs േ + ാ
-    p = p.replace(/\u0D4A/g, '(?:\u0D4A|\u0D46\u0D3E)'); // ൊ vs െ + ാ
-    p = p.replace(/\u0D4C/g, '(?:\u0D4C|\u0D46\u0D57)'); // ൌ vs െ + ൌ
-    // Chillu variations (atomic chillu vs virama + ZWJ)
-    p = p.replace(/\u0D7A/g, '(?:\u0D7A|\u0D23\u0D4D\u200D)');
-    p = p.replace(/\u0D7B/g, '(?:\u0D7B|\u0D28\u0D4D\u200D)');
-    p = p.replace(/\u0D7C/g, '(?:\u0D7C|\u0D30\u0D4D\u200D)');
-    p = p.replace(/\u0D7D/g, '(?:\u0D7D|\u0D32\u0D4D\u200D)');
-    p = p.replace(/\u0D7E/g, '(?:\u0D7E|\u0D33\u0D4D\u200D)');
-    p = p.replace(/\u0D7F/g, '(?:\u0D7F|\u0D15\u0D4D\u200D)');
-    return p;
-  });
+  const exactTermSet = new Set(queryTerms.map(t => normalizeText(t)));
+  const termStems = queryTerms.map(t => ({
+    term: normalizeText(t),
+    stem: getStem(t)
+  }));
+
+  // EXACT MATCH: vivid bright yellow
+  const EXACT_STYLE = "class='text-dark' style='background-color: #fff952;'";
+  // VARIANT / STEM / SUFFIX MATCH: softer, lighter pastel yellow
+  const LIGHT_STYLE = "class='text-dark' style='background-color: #fffca8;'";
+
+  // Match words preserving surrounding punctuation and whitespace
+  const wordRegex = /([\p{L}\p{M}\p{N}]+)/gu;
 
   try {
-    const regex = new RegExp(`(${patterns.join('|')})`, 'gi');
-    return normalizedText.replace(regex, `<span class='text-dark' style='background-color: #fff952;'>$1</span>`);
+    return normalizedText.replace(wordRegex, (match) => {
+      const normWord = normalizeText(match);
+
+      // 1. Exact match check
+      if (exactTermSet.has(normWord)) {
+        return `<span ${EXACT_STYLE}>${match}</span>`;
+      }
+
+      // 2. Variant / stem / inflection match check
+      const wordStem = getStem(normWord);
+
+      for (const { term, stem } of termStems) {
+        if (!stem || stem.length < 2) continue;
+
+        // Same stem (e.g. വെളിപ്പാടു vs വെളിപ്പാട് -> both stem to വെളിപ്പാട)
+        if (wordStem === stem) {
+          return `<span ${LIGHT_STYLE}>${match}</span>`;
+        }
+
+        // Word starts with query stem (e.g. വെളിപ്പാടും, യോഹന്നാന്റെ, loved)
+        if (stem.length >= 3 && normWord.startsWith(stem)) {
+          return `<span ${LIGHT_STYLE}>${match}</span>`;
+        }
+
+        // Query starts with word stem (e.g. query had extra suffix)
+        if (wordStem.length >= 3 && term.startsWith(wordStem)) {
+          return `<span ${LIGHT_STYLE}>${match}</span>`;
+        }
+      }
+
+      return match;
+    });
   } catch (err) {
     return normalizedText;
   }
