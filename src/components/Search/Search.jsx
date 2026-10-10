@@ -5,6 +5,7 @@ import { siteConfig, getBible } from "../../config/siteConfig";
 import { getTranslation } from '../../config/SiteTranslations';
 import { getCacheData, addDataIntoCache, getLanguage } from '../../config/Utils';
 import { copyVerseText } from '../../config/VerseStorage';
+import { searchBible, highlightVerseText } from '../../services/SearchService';
 import Topdown from "../../features/Topdown";
 import VerseActionToolbar from "../VerseActionToolbar";
 
@@ -12,7 +13,7 @@ import VerseActionToolbar from "../VerseActionToolbar";
 // React can skip re-rendering an item if its props haven't changed.
 // This is highly effective when rendering a large list of items.
 const MemoizedSearchResultItem = React.memo(({ item, index, q, title, onCopy, copyStates, isSelected, onSelect }) => {
-  const splited = item.t.replace(new RegExp(q, "gi"), (match) => `<span class='text-dark' style='background-color: #fff952;'>${match}</span>`);
+  const splited = highlightVerseText(item.t, q);
   const currentFontSize = localStorage.getItem('fontSize');
   const currentCompact = localStorage.getItem('compact');
   const bookTitle = !getLanguage() || getLanguage() === "Malayalam" ? title.bm : title.be;
@@ -121,13 +122,13 @@ function Search() {
     fetchData();
   }, [location]); // This effect re-runs only when the URL location changes.
 
-  // Optimization: useMemo calculates filtered results only when data or query changes.
-  // This avoids re-filtering the entire bible on every render.
+  const currentLang = getLanguage() || 'Malayalam';
+
+  // Optimization: useMemo calculates search results using MiniSearch and reference resolution.
   const filteredResults = useMemo(() => {
     if (!q || bibleData.length === 0) return bibleData;
-    return bibleData.filter(obj => obj.t.toLowerCase().includes(q.toLowerCase()));
-
-  }, [q, bibleData]);
+    return searchBible(q, bibleData, titleData, currentLang);
+  }, [q, bibleData, titleData, currentLang]);
 
 
   // Side-effects like changing the document title or navigating programmatically

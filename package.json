@@ -18,6 +18,7 @@
     "bootstrap": "^5.2.3",
     "fs": "^0.0.1-security",
     "hammerjs": "^2.0.8",
+    "minisearch": "^7.2.0",
     "number-to-words": "^1.2.4",
     "ordinal": "^1.0.3",
     "react": "^18.2.0",
