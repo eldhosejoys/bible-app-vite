@@ -84,6 +84,13 @@ function Search() {
   const q = searchParams.get("q") || "";
   const pval = Number.isInteger(parseInt(searchParams.get("p"))) ? parseInt(searchParams.get("p")) : 1;
   const rangevalue = 500;
+  const modeParam = searchParams.get("mode") === "exact" ? "exact" : "all";
+  const [matchMode, setMatchMode] = useState(modeParam);
+
+  useEffect(() => {
+    const urlMode = searchParams.get("mode") === "exact" ? "exact" : "all";
+    setMatchMode(urlMode);
+  }, [searchParams]);
 
   // Optimization: Consolidate data fetching into a single useEffect hook.
   // Fetches bible and title data in parallel for faster loading.
@@ -131,20 +138,87 @@ function Search() {
   }, [q, bibleData, titleData, currentLang]);
 
 
+  const isMalayalam = !currentLang || currentLang === 'Malayalam';
+
+  // Separate exact matches vs related / fuzzy / spread matches
+  const { exactResults, relatedResults, exactCount, relatedCount, isMultiWord } = useMemo(() => {
+    if (!q || filteredResults.length === 0) {
+      return { exactResults: [], relatedResults: [], exactCount: 0, relatedCount: 0, isMultiWord: false };
+    }
+
+    const normQuery = normalizeText(q);
+    const queryTerms = normQuery
+      .trim()
+      .split(/\s+/)
+      .map(t => t.replace(/^[^\p{L}\p{M}\p{N}]+|[^\p{L}\p{M}\p{N}]+$/gu, ''))
+      .filter(t => t.length > 0);
+
+    if (queryTerms.length === 0) {
+      return { exactResults: filteredResults, relatedResults: [], exactCount: filteredResults.length, relatedCount: 0, isMultiWord: false };
+    }
+
+    const isMultiWord = queryTerms.length > 1;
+    const exact = [];
+    const related = [];
+
+    if (isMultiWord) {
+      // For multi-word queries: exact match requires contiguous phrase appearance (not spread across)
+      const escapedTerms = queryTerms.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+      const phraseRegex = new RegExp(`(^|[^\\p{L}\\p{M}\\p{N}])(${escapedTerms.join('[\\s\\p{P}]+')})($|[^\\p{L}\\p{M}\\p{N}])`, 'u');
+      for (const item of filteredResults) {
+        if (phraseRegex.test(normalizeText(item.t))) {
+          exact.push(item);
+        } else {
+          related.push(item);
+        }
+      }
+    } else {
+      // For single word query: whole-word exact match
+      const singleTerm = queryTerms[0];
+      for (const item of filteredResults) {
+        const normText = normalizeText(item.t);
+        const words = normText.split(/[^\p{L}\p{M}\p{N}]+/u).filter(Boolean);
+        const wordSet = new Set(words);
+        if (wordSet.has(singleTerm)) {
+          exact.push(item);
+        } else {
+          related.push(item);
+        }
+      }
+    }
+
+    return {
+      exactResults: exact,
+      relatedResults: related,
+      exactCount: exact.length,
+      relatedCount: related.length,
+      isMultiWord
+    };
+  }, [filteredResults, q]);
+
+  // Active list of verses based on toggle ('all' = combined, 'exact' = exact matches only)
+  const displayedResults = useMemo(() => {
+    if (matchMode === 'exact') {
+      return exactResults;
+    }
+    return filteredResults;
+  }, [matchMode, exactResults, filteredResults]);
+
   // Side-effects like changing the document title or navigating programmatically
   // are handled in a separate useEffect that depends on the calculated results.
   useEffect(() => {
-    const totalPages = Math.ceil(filteredResults.length / rangevalue);
+    const totalPages = Math.ceil(displayedResults.length / rangevalue);
+    const modeQuery = matchMode === 'exact' ? '&mode=exact' : '';
     if (pval > totalPages && totalPages > 0) {
-      navigate(`/search?q=${q}&p=${totalPages}`);
+      navigate(`/search?q=${q}${modeQuery}&p=${totalPages}`);
     } else if (pval < 1 && q) {
-      navigate(`/search?q=${q}`);
+      navigate(`/search?q=${q}${modeQuery}`);
     }
 
     if (q) {
       document.title = `Search: ${q}${pval > 1 ? ` | page ${pval}` : ''} | ${getTranslation().siteTitle}`;
     }
-  }, [q, pval, filteredResults.length, navigate, rangevalue]);
+  }, [q, pval, displayedResults.length, navigate, rangevalue, matchMode]);
 
   useEffect(() => {
     const cleanQ = q.trim().replace(/^\//, '').replace(/\/$/, '');
@@ -168,62 +242,9 @@ function Search() {
     }
   }, [q, navigate]);
 
-
-  const isMalayalam = !currentLang || currentLang === 'Malayalam';
-
-  // Calculate exact full keyword matches vs related / fuzzy / spread matches
-  const matchStats = useMemo(() => {
-    if (!q || filteredResults.length === 0) {
-      return { total: filteredResults.length, exactCount: 0, relatedCount: 0, isMultiWord: false };
-    }
-
-    const normQuery = normalizeText(q);
-    const queryTerms = normQuery
-      .trim()
-      .split(/\s+/)
-      .map(t => t.replace(/^[^\p{L}\p{M}\p{N}]+|[^\p{L}\p{M}\p{N}]+$/gu, ''))
-      .filter(t => t.length > 0);
-
-    if (queryTerms.length === 0) {
-      return { total: filteredResults.length, exactCount: 0, relatedCount: 0, isMultiWord: false };
-    }
-
-    const isMultiWord = queryTerms.length > 1;
-    let exactCount = 0;
-
-    if (isMultiWord) {
-      // For multi-word queries: exact match requires contiguous phrase appearance (not spread across)
-      const escapedTerms = queryTerms.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
-      const phraseRegex = new RegExp(`(^|[^\\p{L}\\p{M}\\p{N}])(${escapedTerms.join('[\\s\\p{P}]+')})($|[^\\p{L}\\p{M}\\p{N}])`, 'u');
-      for (const item of filteredResults) {
-        if (phraseRegex.test(normalizeText(item.t))) {
-          exactCount++;
-        }
-      }
-    } else {
-      // For single word query: whole-word exact match
-      const singleTerm = queryTerms[0];
-      for (const item of filteredResults) {
-        const normText = normalizeText(item.t);
-        const words = normText.split(/[^\p{L}\p{M}\p{N}]+/u).filter(Boolean);
-        const wordSet = new Set(words);
-        if (wordSet.has(singleTerm)) {
-          exactCount++;
-        }
-      }
-    }
-
-    return {
-      total: filteredResults.length,
-      exactCount,
-      relatedCount: Math.max(0, filteredResults.length - exactCount),
-      isMultiWord
-    };
-  }, [filteredResults, q]);
-
   // Optimization: Memoize the result count message distinguishing exact & related matches.
   const resultCountMessage = useMemo(() => {
-    const { total, exactCount, relatedCount, isMultiWord } = matchStats;
+    const total = filteredResults.length;
     if (total <= 0) {
       return (
         <div className="text-center fw-lighter mb-3 text-secondary">
@@ -264,16 +285,18 @@ function Search() {
       return null;
     };
 
-    if (total < rangevalue) {
+    const activeTotal = displayedResults.length;
+
+    if (activeTotal < rangevalue) {
       return (
-        <div className="text-center fw-lighter mb-3 text-secondary">
+        <div className="text-center fw-lighter mb-1 text-secondary">
           {isMalayalam ? (
             <>
-              "{q}" : <strong>{total}</strong> വാക്യങ്ങളിൽ കണ്ടെത്തി {renderBreakdown()}
+              "{q}" : <strong>{activeTotal}</strong> {matchMode === 'exact' ? "കൃത്യമായ വാക്യങ്ങളിൽ കണ്ടെത്തി" : "വാക്യങ്ങളിൽ കണ്ടെത്തി"} {matchMode === 'all' && renderBreakdown()}
             </>
           ) : (
             <>
-              Found {total} {total === 1 ? "verse" : "verses"} for "{q}" {renderBreakdown()}
+              Found {activeTotal} {activeTotal === 1 ? "verse" : "verses"} {matchMode === 'exact' ? "(exact only)" : ""} for "{q}" {matchMode === 'all' && renderBreakdown()}
             </>
           )}
         </div>
@@ -285,24 +308,89 @@ function Search() {
       range = isMalayalam ? `ആദ്യ ${rangevalue}` : `first ${rangevalue}`;
     } else {
       const start = ((pval - 1) * rangevalue) + 1;
-      const end = Math.min(start + rangevalue - 1, total);
+      const end = Math.min(start + rangevalue - 1, activeTotal);
       range = `${start} to ${end}`;
     }
 
     return (
-      <div className="text-center fw-lighter mb-3 text-secondary">
+      <div className="text-center fw-lighter mb-1 text-secondary">
         {isMalayalam ? (
           <>
-            "{q}" : {total} വാക്യങ്ങളിൽ {range} കാണിക്കുന്നു {renderBreakdown()}
+            "{q}" : {activeTotal} വാക്യങ്ങളിൽ {range} കാണിക്കുന്നു {matchMode === 'all' && renderBreakdown()}
           </>
         ) : (
           <>
-            Showing {range} of {total} verses for "{q}" {renderBreakdown()}
+            Showing {range} of {activeTotal} verses for "{q}" {matchMode === 'all' && renderBreakdown()}
           </>
         )}
       </div>
     );
-  }, [matchStats, pval, rangevalue, q, isMalayalam]);
+  }, [filteredResults.length, displayedResults.length, exactCount, relatedCount, isMultiWord, pval, rangevalue, q, isMalayalam, matchMode]);
+
+  // Simple subtle segmented toggle: "Combined" vs "Exact"
+  const toggleFilter = useMemo(() => {
+    if (!q || filteredResults.length === 0) return null;
+
+    return (
+      <div className="d-flex justify-content-center align-items-center mb-3">
+        <div
+          className="d-inline-flex p-1 rounded-pill"
+          style={{
+            backgroundColor: 'rgba(128, 128, 128, 0.12)',
+            border: '1px solid rgba(128, 128, 128, 0.18)',
+            gap: '3px'
+          }}
+          role="group"
+          aria-label="Filter results"
+        >
+          <button
+            type="button"
+            className="btn btn-sm rounded-pill border-0 shadow-none"
+            style={{
+              fontSize: '0.78rem',
+              padding: '2px 11px',
+              lineHeight: 1.3,
+              fontWeight: matchMode === 'all' ? 600 : 400,
+              backgroundColor: matchMode === 'all' ? 'var(--bs-secondary-bg, rgba(128, 128, 128, 0.25))' : 'transparent',
+              color: matchMode === 'all' ? 'var(--bs-emphasis-color, inherit)' : 'var(--bs-secondary-color, #888)',
+              boxShadow: matchMode === 'all' ? '0 1px 2px rgba(0,0,0,0.15)' : 'none',
+              transition: 'all 0.15s ease'
+            }}
+            onClick={() => {
+              if (matchMode !== 'all') {
+                setMatchMode('all');
+                navigate(`/search?q=${q}&p=1`);
+              }
+            }}
+          >
+            {isMalayalam ? `എല്ലാം (${filteredResults.length})` : `Combined (${filteredResults.length})`}
+          </button>
+          <button
+            type="button"
+            className="btn btn-sm rounded-pill border-0 shadow-none"
+            style={{
+              fontSize: '0.78rem',
+              padding: '2px 11px',
+              lineHeight: 1.3,
+              fontWeight: matchMode === 'exact' ? 600 : 400,
+              backgroundColor: matchMode === 'exact' ? 'var(--bs-secondary-bg, rgba(128, 128, 128, 0.25))' : 'transparent',
+              color: matchMode === 'exact' ? 'var(--bs-emphasis-color, inherit)' : 'var(--bs-secondary-color, #888)',
+              boxShadow: matchMode === 'exact' ? '0 1px 2px rgba(0,0,0,0.15)' : 'none',
+              transition: 'all 0.15s ease'
+            }}
+            onClick={() => {
+              if (matchMode !== 'exact') {
+                setMatchMode('exact');
+                navigate(`/search?q=${q}&mode=exact&p=1`);
+              }
+            }}
+          >
+            {isMalayalam ? `കൃത്യം (${exactCount})` : `Exact (${exactCount})`}
+          </button>
+        </div>
+      </div>
+    );
+  }, [q, filteredResults.length, exactCount, matchMode, isMalayalam, navigate]);
 
   const onCopy = useCallback(async (text, reference, index) => {
     const result = await copyVerseText(text, reference);
@@ -323,7 +411,7 @@ function Search() {
   const cards = useMemo(() => {
     const startIndex = (pval - 1) * rangevalue;
     const endIndex = startIndex + rangevalue;
-    const itemsToRender = filteredResults.slice(startIndex, endIndex);
+    const itemsToRender = displayedResults.slice(startIndex, endIndex);
 
 
     return itemsToRender.map((item, i) => {
@@ -347,12 +435,12 @@ function Search() {
         />
       );
     });
-  }, [filteredResults, pval, rangevalue, q, titleData, onCopy, copyStates, selectedItems, handleVerseSelect]);
+  }, [displayedResults, pval, rangevalue, q, titleData, onCopy, copyStates, selectedItems, handleVerseSelect]);
 
 
   // Optimization: Memoize the pagination component.
   const navigation = useMemo(() => {
-    const totalPages = Math.ceil(filteredResults.length / rangevalue);
+    const totalPages = Math.ceil(displayedResults.length / rangevalue);
     if (totalPages <= 1) return null;
 
     const pageNumbers = [];
@@ -366,8 +454,10 @@ function Search() {
       }
     }
 
+    const modeParam = matchMode === 'exact' ? '&mode=exact' : '';
+
     const handlePageChange = (e) => {
-      navigate(`/search?q=${q}&p=${e.target.value}`);
+      navigate(`/search?q=${q}${modeParam}&p=${e.target.value}`);
     };
 
     return pageNumbers.map((num, idx) => {
@@ -388,13 +478,13 @@ function Search() {
       const pageTarget = num === '>>' ? pval + 5 : num === '<<' ? pval - 5 : num;
       return (
         <div key={idx} className="numberbox">
-          <Link className="link-dark small text-decoration-none" to={`/search?q=${q}&p=${pageTarget}`}>
+          <Link className="link-dark small text-decoration-none" to={`/search?q=${q}${modeParam}&p=${pageTarget}`}>
             <div className="col numberbox">{num}</div>
           </Link>
         </div>
       );
     });
-  }, [filteredResults.length, rangevalue, pval, q, navigate]);
+  }, [displayedResults.length, rangevalue, pval, q, matchMode, navigate]);
 
   return (
     <>
@@ -406,13 +496,32 @@ function Search() {
                 <div className="container my-2">
                   <div className="row row-cols-1 justify-content-center">
                     {resultCountMessage}
+                    {toggleFilter}
                     {isLoading ? (
                       <div className="spinner-grow text-center" role="status">
                         <span className="visually-hidden">Loading...</span>
                       </div>
                     ) : (
                       <>
-                        {cards}
+                        {matchMode === 'exact' && exactCount === 0 ? (
+                          <div className="text-center my-4 py-4">
+                            <p className="text-secondary mb-2">
+                              {isMalayalam ? `"${q}" എന്നതിന് കൃത്യമായ പ്രയോഗം കണ്ടെത്തിയില്ല.` : `No exact matches found for "${q}".`}
+                            </p>
+                            <button
+                              className="btn btn-sm btn-outline-secondary rounded-pill px-3"
+                              style={{ fontSize: '0.8rem' }}
+                              onClick={() => {
+                                setMatchMode('all');
+                                navigate(`/search?q=${q}&p=1`);
+                              }}
+                            >
+                              {isMalayalam ? "എല്ലാ പൊരുത്തങ്ങളും കാണുക" : "Show combined results"}
+                            </button>
+                          </div>
+                        ) : (
+                          cards
+                        )}
                       </>
                     )}
                     <div></div>
