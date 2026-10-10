@@ -113,50 +113,104 @@ export function highlightVerseText(text, query, matchedTerms = []) {
     while ((m = tokenRegex.exec(normalizedText)) !== null) {
       const raw = m[0];
       const isWord = /^[\p{L}\p{M}\p{N}]+$/u.test(raw);
+      tokens.push({
+        text: raw,
+        isWord,
+        normWord: isWord ? normalizeText(raw) : null,
+        type: null
+      });
+    }
 
-      if (!isWord) {
-        tokens.push({ text: raw, isWord: false, type: null });
-        continue;
+    // If query has multiple words, identify contiguous exact phrase occurrences
+    const phraseWordIndices = new Set();
+    const wordTokenIndices = [];
+    for (let i = 0; i < tokens.length; i++) {
+      if (tokens[i].isWord) wordTokenIndices.push(i);
+    }
+
+    if (queryTerms.length > 1) {
+      const normTerms = queryTerms.map(t => normalizeText(t));
+      for (let i = 0; i <= wordTokenIndices.length - normTerms.length; i++) {
+        let isPhraseMatch = true;
+        for (let j = 0; j < normTerms.length; j++) {
+          const wIdx = wordTokenIndices[i + j];
+          if (tokens[wIdx].normWord !== normTerms[j]) {
+            isPhraseMatch = false;
+            break;
+          }
+          if (j > 0) {
+            const prevWIdx = wordTokenIndices[i + j - 1];
+            for (let k = prevWIdx + 1; k < wIdx; k++) {
+              if (/[.!?\n]/.test(tokens[k].text)) {
+                isPhraseMatch = false;
+                break;
+              }
+            }
+            if (!isPhraseMatch) break;
+          }
+        }
+        if (isPhraseMatch) {
+          for (let j = 0; j < normTerms.length; j++) {
+            phraseWordIndices.add(wordTokenIndices[i + j]);
+          }
+        }
       }
+    }
 
-      const normWord = normalizeText(raw);
+    // Assign match types to words
+    for (let i = 0; i < tokens.length; i++) {
+      if (!tokens[i].isWord) continue;
+
+      const normWord = tokens[i].normWord;
       let matchType = null;
 
-      // 1. Exact match with query terms
-      if (exactTermSet.has(normWord)) {
-        matchType = 'exact';
-      }
-      // 2. Term matched by MiniSearch for this verse (e.g. fuzzy/stem matched)
-      else if (fuzzyTermSet.has(normWord)) {
-        matchType = 'light';
-      }
-      // 3. Dynamic stem, inflection, or fuzzy edit-distance match
-      else {
-        const wordStem = getStem(normWord);
-        for (const { term, stem } of termStems) {
-          if (!stem || stem.length < 2) continue;
-
-          if (wordStem === stem) {
-            matchType = 'light';
-            break;
+      if (queryTerms.length > 1) {
+        // Multi-word search:
+        // Contiguous exact phrase gets 'exact' (bright)
+        // Spread/scattered exact words get 'light' (soft)
+        if (phraseWordIndices.has(i)) {
+          matchType = 'exact';
+        } else if (exactTermSet.has(normWord) || fuzzyTermSet.has(normWord)) {
+          matchType = 'light';
+        } else {
+          const wordStem = getStem(normWord);
+          for (const { term, stem } of termStems) {
+            if (!stem || stem.length < 2) continue;
+            if (
+              wordStem === stem ||
+              (stem.length >= 3 && normWord.startsWith(stem)) ||
+              (wordStem.length >= 3 && term.startsWith(wordStem)) ||
+              (term.length >= 4 && Math.abs(normWord.length - term.length) <= 1 && levenshtein(normWord, term) <= 1)
+            ) {
+              matchType = 'light';
+              break;
+            }
           }
-          if (stem.length >= 3 && normWord.startsWith(stem)) {
-            matchType = 'light';
-            break;
-          }
-          if (wordStem.length >= 3 && term.startsWith(wordStem)) {
-            matchType = 'light';
-            break;
-          }
-          // Dynamic fuzzy match (1 character typo/variation for words >= 4 chars)
-          if (term.length >= 4 && Math.abs(normWord.length - term.length) <= 1 && levenshtein(normWord, term) <= 1) {
-            matchType = 'light';
-            break;
+        }
+      } else {
+        // Single word search:
+        if (exactTermSet.has(normWord)) {
+          matchType = 'exact';
+        } else if (fuzzyTermSet.has(normWord)) {
+          matchType = 'light';
+        } else {
+          const wordStem = getStem(normWord);
+          for (const { term, stem } of termStems) {
+            if (!stem || stem.length < 2) continue;
+            if (
+              wordStem === stem ||
+              (stem.length >= 3 && normWord.startsWith(stem)) ||
+              (wordStem.length >= 3 && term.startsWith(wordStem)) ||
+              (term.length >= 4 && Math.abs(normWord.length - term.length) <= 1 && levenshtein(normWord, term) <= 1)
+            ) {
+              matchType = 'light';
+              break;
+            }
           }
         }
       }
 
-      tokens.push({ text: raw, isWord: true, type: matchType });
+      tokens[i].type = matchType;
     }
 
     // Assemble and merge adjacent highlighted words separated only by whitespace
@@ -395,6 +449,34 @@ export function searchBible(query, bibleData, titleList = [], cacheKey = 'defaul
   if (combined.length === 0) {
     const normQ = normalizeText(trimmedQuery);
     return bibleData.filter(item => normalizeText(item.t).includes(normQ));
+  }
+
+  // 5. Prioritize exact matches:
+  // For multi-word queries: exact contiguous phrase matches appear first.
+  // For single-word queries: exact whole-word matches appear first.
+  const normQ = normalizeText(trimmedQuery);
+  const qTerms = normQ
+    .split(/\s+/)
+    .map(t => t.replace(/^[^\p{L}\p{M}\p{N}]+|[^\p{L}\p{M}\p{N}]+$/gu, ''))
+    .filter(Boolean);
+
+  if (qTerms.length > 1) {
+    const escapedTerms = qTerms.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+    const phraseRegex = new RegExp(`(^|[^\\p{L}\\p{M}\\p{N}])(${escapedTerms.join('[\\s\\p{P}]+')})($|[^\\p{L}\\p{M}\\p{N}])`, 'u');
+    combined.sort((a, b) => {
+      const aExact = phraseRegex.test(normalizeText(a.t)) ? 1 : 0;
+      const bExact = phraseRegex.test(normalizeText(b.t)) ? 1 : 0;
+      return bExact - aExact;
+    });
+  } else if (qTerms.length === 1) {
+    const singleTerm = qTerms[0];
+    combined.sort((a, b) => {
+      const aWords = normalizeText(a.t).split(/[^\p{L}\p{M}\p{N}]+/u);
+      const bWords = normalizeText(b.t).split(/[^\p{L}\p{M}\p{N}]+/u);
+      const aExact = aWords.includes(singleTerm) ? 1 : 0;
+      const bExact = bWords.includes(singleTerm) ? 1 : 0;
+      return bExact - aExact;
+    });
   }
 
   return combined;

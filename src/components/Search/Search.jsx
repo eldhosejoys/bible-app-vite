@@ -5,7 +5,7 @@ import { siteConfig, getBible } from "../../config/siteConfig";
 import { getTranslation } from '../../config/SiteTranslations';
 import { getCacheData, addDataIntoCache, getLanguage } from '../../config/Utils';
 import { copyVerseText } from '../../config/VerseStorage';
-import { searchBible, highlightVerseText } from '../../services/SearchService';
+import { searchBible, highlightVerseText, normalizeText } from '../../services/SearchService';
 import Topdown from "../../features/Topdown";
 import VerseActionToolbar from "../VerseActionToolbar";
 
@@ -169,26 +169,140 @@ function Search() {
   }, [q, navigate]);
 
 
-  // Optimization: Memoize the result count message.
-  const resultCountMessage = useMemo(() => {
-    const r_length = filteredResults.length;
-    if (r_length <= 0) {
-      return <div className="text-center fw-lighter mb-3 text-secondary">No results found</div>;
+  const isMalayalam = !currentLang || currentLang === 'Malayalam';
+
+  // Calculate exact full keyword matches vs related / fuzzy / spread matches
+  const matchStats = useMemo(() => {
+    if (!q || filteredResults.length === 0) {
+      return { total: filteredResults.length, exactCount: 0, relatedCount: 0, isMultiWord: false };
     }
-    if (r_length < rangevalue) {
-      return <div className="text-center fw-lighter mb-3 text-secondary">Search word "{q}" found in {r_length} verses</div>;
+
+    const normQuery = normalizeText(q);
+    const queryTerms = normQuery
+      .trim()
+      .split(/\s+/)
+      .map(t => t.replace(/^[^\p{L}\p{M}\p{N}]+|[^\p{L}\p{M}\p{N}]+$/gu, ''))
+      .filter(t => t.length > 0);
+
+    if (queryTerms.length === 0) {
+      return { total: filteredResults.length, exactCount: 0, relatedCount: 0, isMultiWord: false };
+    }
+
+    const isMultiWord = queryTerms.length > 1;
+    let exactCount = 0;
+
+    if (isMultiWord) {
+      // For multi-word queries: exact match requires contiguous phrase appearance (not spread across)
+      const escapedTerms = queryTerms.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+      const phraseRegex = new RegExp(`(^|[^\\p{L}\\p{M}\\p{N}])(${escapedTerms.join('[\\s\\p{P}]+')})($|[^\\p{L}\\p{M}\\p{N}])`, 'u');
+      for (const item of filteredResults) {
+        if (phraseRegex.test(normalizeText(item.t))) {
+          exactCount++;
+        }
+      }
+    } else {
+      // For single word query: whole-word exact match
+      const singleTerm = queryTerms[0];
+      for (const item of filteredResults) {
+        const normText = normalizeText(item.t);
+        const words = normText.split(/[^\p{L}\p{M}\p{N}]+/u).filter(Boolean);
+        const wordSet = new Set(words);
+        if (wordSet.has(singleTerm)) {
+          exactCount++;
+        }
+      }
+    }
+
+    return {
+      total: filteredResults.length,
+      exactCount,
+      relatedCount: Math.max(0, filteredResults.length - exactCount),
+      isMultiWord
+    };
+  }, [filteredResults, q]);
+
+  // Optimization: Memoize the result count message distinguishing exact & related matches.
+  const resultCountMessage = useMemo(() => {
+    const { total, exactCount, relatedCount, isMultiWord } = matchStats;
+    if (total <= 0) {
+      return (
+        <div className="text-center fw-lighter mb-3 text-secondary">
+          {isMalayalam ? "ഫലങ്ങളൊന്നും കണ്ടെത്തിയില്ല" : "No results found"}
+        </div>
+      );
+    }
+
+    const renderBreakdown = () => {
+      const exactLabel = isMultiWord
+        ? (isMalayalam ? "കൃത്യമായ പ്രയോഗം" : "exact phrase")
+        : (isMalayalam ? "കൃത്യമായ വാക്ക്" : "exact match");
+      const exactPlural = isMultiWord
+        ? (isMalayalam ? "കൃത്യമായ പ്രയോഗം" : "exact phrases")
+        : (isMalayalam ? "കൃത്യമായ വാക്കുകൾ" : "exact matches");
+
+      if (exactCount > 0 && relatedCount > 0) {
+        return (
+          <span className="small opacity-75 ms-1">
+            ({exactCount} {exactCount === 1 ? exactLabel : exactPlural}, {relatedCount} {isMalayalam ? "അനുബന്ധം" : "related"})
+          </span>
+        );
+      }
+      if (exactCount === 0 && relatedCount > 0) {
+        return (
+          <span className="small opacity-75 ms-1">
+            ({relatedCount} {isMalayalam ? (isMultiWord ? "അനുബന്ധ / ചിതറിയ പൊരുത്തങ്ങൾ" : "അനുബന്ധ / സമാന വാക്കുകൾ") : "related / spread matches"})
+          </span>
+        );
+      }
+      if (exactCount > 0 && relatedCount === 0) {
+        return (
+          <span className="small opacity-75 ms-1">
+            ({isMalayalam ? (isMultiWord ? "എല്ലാം കൃത്യമായ പ്രയോഗങ്ങൾ" : "എല്ലാം കൃത്യമായ വാക്കുകൾ") : (isMultiWord ? "all exact phrase matches" : "all exact matches")})
+          </span>
+        );
+      }
+      return null;
+    };
+
+    if (total < rangevalue) {
+      return (
+        <div className="text-center fw-lighter mb-3 text-secondary">
+          {isMalayalam ? (
+            <>
+              "{q}" : <strong>{total}</strong> വാക്യങ്ങളിൽ കണ്ടെത്തി {renderBreakdown()}
+            </>
+          ) : (
+            <>
+              Found {total} {total === 1 ? "verse" : "verses"} for "{q}" {renderBreakdown()}
+            </>
+          )}
+        </div>
+      );
     }
 
     let range;
     if (pval === 1) {
-      range = `first ${rangevalue}`;
+      range = isMalayalam ? `ആദ്യ ${rangevalue}` : `first ${rangevalue}`;
     } else {
       const start = ((pval - 1) * rangevalue) + 1;
-      const end = Math.min(start + rangevalue - 1, r_length);
+      const end = Math.min(start + rangevalue - 1, total);
       range = `${start} to ${end}`;
     }
-    return <div className="text-center fw-lighter mb-3 text-secondary">Showing the {range} of {r_length} verses matching the search word {q ? `"${q}"` : ""}</div>;
-  }, [filteredResults.length, pval, rangevalue]);
+
+    return (
+      <div className="text-center fw-lighter mb-3 text-secondary">
+        {isMalayalam ? (
+          <>
+            "{q}" : {total} വാക്യങ്ങളിൽ {range} കാണിക്കുന്നു {renderBreakdown()}
+          </>
+        ) : (
+          <>
+            Showing {range} of {total} verses for "{q}" {renderBreakdown()}
+          </>
+        )}
+      </div>
+    );
+  }, [matchStats, pval, rangevalue, q, isMalayalam]);
 
   const onCopy = useCallback(async (text, reference, index) => {
     const result = await copyVerseText(text, reference);
