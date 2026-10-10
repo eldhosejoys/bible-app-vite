@@ -13,7 +13,7 @@ import VerseActionToolbar from "../VerseActionToolbar";
 // React can skip re-rendering an item if its props haven't changed.
 // This is highly effective when rendering a large list of items.
 const MemoizedSearchResultItem = React.memo(({ item, index, q, title, onCopy, copyStates, isSelected, onSelect }) => {
-  const splited = highlightVerseText(item.t, q);
+  const splited = highlightVerseText(item.t, q, item.terms || (item.match ? Object.keys(item.match) : null));
   const currentFontSize = localStorage.getItem('fontSize');
   const currentCompact = localStorage.getItem('compact');
   const bookTitle = !getLanguage() || getLanguage() === "Malayalam" ? title.bm : title.be;

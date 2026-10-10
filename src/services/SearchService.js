@@ -47,12 +47,38 @@ export function getStem(word) {
 }
 
 /**
+ * Calculates Levenshtein edit distance between two strings
+ */
+function levenshtein(a, b) {
+  if (a === b) return 0;
+  if (!a.length) return b.length;
+  if (!b.length) return a.length;
+  const matrix = [];
+  for (let i = 0; i <= b.length; i++) matrix[i] = [i];
+  for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
+  for (let i = 1; i <= b.length; i++) {
+    for (let j = 1; j <= a.length; j++) {
+      if (b.charAt(i - 1) === a.charAt(j - 1)) {
+        matrix[i][j] = matrix[i - 1][j - 1];
+      } else {
+        matrix[i][j] = Math.min(
+          matrix[i - 1][j - 1] + 1,
+          matrix[i][j - 1] + 1,
+          matrix[i - 1][j] + 1
+        );
+      }
+    }
+  }
+  return matrix[b.length][a.length];
+}
+
+/**
  * Highlights matched query terms in verse text:
  * - Exact matches (identical word/term) are highlighted in the vivid current color (#fff952).
- * - Morphological / stem / inflection variants (e.g. വെളിപ്പാട് vs വെളിപ്പാടു vs വെളിപ്പാടും, യോഹന്നാൻ vs യോഹന്നാന്റെ, love vs loved)
+ * - Morphological / stem / inflection / fuzzy variants (e.g. matched by MiniSearch or within 1 edit distance)
  *   are highlighted in a softer, lighter pastel version (#fffca8).
  */
-export function highlightVerseText(text, query) {
+export function highlightVerseText(text, query, matchedTerms = []) {
   if (!text || !query) return text;
 
   // Unicode NFC normalization merges decomposed 2-part vowels (e.g. േ + ാ into ോ)
@@ -69,6 +95,7 @@ export function highlightVerseText(text, query) {
   if (queryTerms.length === 0) return normalizedText;
 
   const exactTermSet = new Set(queryTerms.map(t => normalizeText(t)));
+  const fuzzyTermSet = new Set((matchedTerms || []).map(t => normalizeText(t)));
   const termStems = queryTerms.map(t => ({
     term: normalizeText(t),
     stem: getStem(t)
@@ -95,9 +122,16 @@ export function highlightVerseText(text, query) {
       const normWord = normalizeText(raw);
       let matchType = null;
 
+      // 1. Exact match with query terms
       if (exactTermSet.has(normWord)) {
         matchType = 'exact';
-      } else {
+      }
+      // 2. Term matched by MiniSearch for this verse (e.g. fuzzy/stem matched)
+      else if (fuzzyTermSet.has(normWord)) {
+        matchType = 'light';
+      }
+      // 3. Dynamic stem, inflection, or fuzzy edit-distance match
+      else {
         const wordStem = getStem(normWord);
         for (const { term, stem } of termStems) {
           if (!stem || stem.length < 2) continue;
@@ -111,6 +145,11 @@ export function highlightVerseText(text, query) {
             break;
           }
           if (wordStem.length >= 3 && term.startsWith(wordStem)) {
+            matchType = 'light';
+            break;
+          }
+          // Dynamic fuzzy match (1 character typo/variation for words >= 4 chars)
+          if (term.length >= 4 && Math.abs(normWord.length - term.length) <= 1 && levenshtein(normWord, term) <= 1) {
             matchType = 'light';
             break;
           }
